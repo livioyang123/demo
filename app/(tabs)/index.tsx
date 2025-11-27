@@ -1,98 +1,295 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import AntDesign from '@expo/vector-icons/AntDesign';
+import { LinearGradient } from 'expo-linear-gradient';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { useRouter } from "expo-router";
+import { useEffect, useState } from 'react';
+import { DeviceEventEmitter, Pressable, StyleSheet, Text, View } from 'react-native';
+
+import { calculateTotalForInMonth_in, calculateTotalForInMonth_out } from '@/app/services/registry';
+import DatePickerModal from '@/components/DatePickerModal';
+import TransactionsList from '@/components/TransactionalList';
+import { months } from '../../constants/months';
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [showPicker, setShowPicker] = useState(false);
+  const [totalIn, setTotalIn] = useState(0);
+  const [totalOut, setTotalOut] = useState(0);
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const formatNumber = (num: number, type: "int" | "float" = "int") => {
+    const values = num.toString().split('.');
+    if (type === "int") {
+      return values[0];
+    }
+    else {
+      return values.length > 1 ? values[1] : '00';
+    }
+  }
+
+  const formatDate = (mode = "full") => {
+    const month = months[selectedMonth];
+    const year = selectedYear;
+
+    if (mode === "month") return month;
+    if (mode === "year") return year;
+
+    return `${month} ${year}`;
+  };
+
+  const handleDone = () => {
+    setShowPicker(false);
+  };
+
+  const handleMonthChange = (newMonth: number, newYear: number) => {
+    setSelectedMonth(newMonth);
+    setSelectedYear(newYear);
+  };
+
+  const router = useRouter();
+
+  useEffect(() => {
+    async function fetchTotals() {
+      try {
+        const inValue = await calculateTotalForInMonth_in(selectedYear + "-" + (selectedMonth + 1));
+        const outValue = await calculateTotalForInMonth_out(selectedYear + "-" + (selectedMonth + 1));
+
+        setTotalIn(inValue);
+        setTotalOut(outValue);
+      } catch (e) {
+        console.error('Errore nel calcolo dei totali:', e);
+      }
+    }
+
+    fetchTotals();
+
+    const updateListener = () => {
+      fetchTotals();
+    }
+
+    const listener = DeviceEventEmitter.addListener('registryChanged', updateListener);
+
+    return () => {
+      listener.remove();
+    };
+  }, [selectedMonth, selectedYear]);
+
+  return (
+    <LinearGradient
+      colors={['#d7d8b6ff', '#f2edadff', '#ffffffff']}
+      locations={[0.1, 0.2, 0.9]}
+      style={styles.mainContainer}
+    >
+      <View style={styles.appName}>
+        <Text style={styles.text}>L</Text>
+      </View>
+
+      <View style={styles.header}>
+
+        <View style={styles.overView}>
+
+          <View style={styles.dataSelector}>
+
+            <Text style={styles.selectedText}>{selectedYear}</Text>
+
+            <Pressable
+              style={styles.dateButton}
+              onPress={() => setShowPicker(true)}
+            >
+              <Text style={styles.dateText}>
+                {formatDate("month")} <AntDesign name="caret-down" size={20} color="black" />
+              </Text>
+            </Pressable>
+
+          </View>
+
+          <View style={styles.info}>
+
+            <View style={styles.infoIn}>
+              <Text style={styles.infoText}>In</Text>
+              <Pressable style={styles.infoButton} onPress={() => router.push("/monthlyInfo")}>
+                <Text style={styles.text}>
+                  {formatNumber(totalIn)}<Text>.</Text><Text style={styles.smallNumber}>{formatNumber(totalIn, "float")}</Text>
+                </Text>
+              </Pressable >
+            </View>
+
+            <View style={styles.infoOut}>
+
+              <Text style={styles.infoText}>Out</Text>
+              <Pressable style={styles.infoButton} onPress={() => router.push("/monthlyInfo")}>
+                <Text style={styles.text}>
+                  {formatNumber(totalOut)}<Text>.</Text><Text style={styles.smallNumber}>{formatNumber(totalOut, "float")}</Text>
+                </Text>
+              </Pressable>
+
+            </View>
+
+          </View>
+
+        </View>
+
+        <View style={styles.navbar}>
+
+
+
+        </View>
+
+      </View>
+
+      <View style={styles.body}>
+        <TransactionsList
+          selectedMonth={selectedMonth}
+          selectedYear={selectedYear}
+          onMonthChange={handleMonthChange}
+        />
+      </View>
+
+      <DatePickerModal
+        visible={showPicker}
+        selectedMonth={selectedMonth}
+        selectedYear={selectedYear}
+        months={months}
+        onMonthChange={setSelectedMonth}
+        onYearChange={setSelectedYear}
+        onClose={() => setShowPicker(false)}
+        onDone={handleDone}
+      />
+
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
+  mainContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
+    position: 'relative',
+    flexDirection: "column",
+
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
+  appName: {
+    width: 200,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
     position: 'absolute',
+    top: '4%',
+
   },
-});
+  text: {
+    marginBottom: 5,
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#070707ff',
+    fontFamily: "sans-serif-condensed",
+  },
+
+  header: {
+    width: '96%',
+    position: 'absolute',
+    top: "10%",
+    flexDirection: "column",
+    margin: 10,
+  },
+  overView: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    position: "relative",
+    width: '98%',
+  },
+  dataSelector: {
+    marginLeft: 10,
+    position: "absolute",
+    left: 0,
+  },
+  info: {
+    position: "absolute",
+    right: 0,
+    width: '70%',
+    textAlign: "left",
+    flexDirection: "row",
+    justifyContent: "space-around",
+
+  },
+  infoIn: {
+    position: "absolute",
+    left: 0,
+    width: '50%',
+
+  },
+  infoOut: {
+    position: "absolute",
+    right: 0,
+    width: '50%',
+  },
+  infoText: {
+    fontSize: 16,
+    color: '#070707ff',
+    marginBottom: 5,
+  },
+  infoButton: {
+    elevation: 3,
+
+  },
+  navbar: {
+    width: '98%',
+    position: "absolute",
+    backgroundColor: "white",
+    flexDirection: "row",
+    justifyContent: "space-around",
+    top: 60,
+    height: 60,
+
+    borderColor: "#d3d3d3",
+    borderWidth: 1,
+    borderRadius: 10,
+  },
+  body: {
+    flex: 1,
+    overflow: "hidden",
+    width: '98%',
+    position: "relative",
+    top: 130,
+    backgroundColor: "white",
+    borderRadius: 15,
+    borderColor: "#d3d3d3",
+    borderWidth: 1,
+    maxHeight:600,
+    marginTop:30,
+
+  },
+
+  dateButton: {
+    elevation: 3,
+
+  },
+  dateText: {
+    marginTop: 5,
+    fontSize: 20,
+    color: '#070707ff',
+    fontWeight: '600',
+
+  },
+  selectedText: {
+    fontSize: 16,
+    color: '#070707ff',
+  },
+  openButton: {
+    marginTop: 30,
+    backgroundColor: '#007aff',
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 10,
+  },
+  openButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  smallNumber: {
+    color: '#887070ff',
+    fontSize: 14,
+  },
+});  
