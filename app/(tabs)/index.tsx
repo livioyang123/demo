@@ -18,8 +18,8 @@ export default function HomeScreen() {
   const [showPicker, setShowPicker] = useState(false);
   const [totalIn, setTotalIn] = useState(0);
   const [totalOut, setTotalOut] = useState(0);
+  const [color, setColor] = useState(getColor());
 
-  const color = getColor();
 
   const formatNumber = (num: number, type: "int" | "float" = "int") => {
     const values = num.toString().split('.');
@@ -71,10 +71,14 @@ export default function HomeScreen() {
       fetchTotals();
     }
 
+    const gradientListener = DeviceEventEmitter.addListener('gradientChanged', (colors) => {
+        setColor(colors);
+    });
     const listener = DeviceEventEmitter.addListener('registryChanged', updateListener);
 
     return () => {
       listener.remove();
+      gradientListener.remove();
     };
   }, [selectedMonth, selectedYear]);
 

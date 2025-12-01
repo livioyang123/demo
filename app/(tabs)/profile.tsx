@@ -3,9 +3,9 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, Vibration, View } from 'react-native';
+import { Alert, DeviceEventEmitter, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, Vibration, View } from 'react-native';
 
-import { getAllGradients } from '@/app/utils/bgColor';
+import { getAllGradients, setIndexByColor } from '@/app/utils/bgColor';
 
 interface ColorPickerProps {
   visible: boolean;
@@ -69,6 +69,12 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     loadSettings();
+
+    const listener = DeviceEventEmitter.addListener('gradientChanged', (colors) => {
+    setGradientColors(colors);
+  });
+  
+  return () => listener.remove();
   }, []);
 
   const loadSettings = async () => {
@@ -109,7 +115,8 @@ export default function ProfileScreen() {
     setIsEditingUsername(false);
   };
 
-  const handleGradientSelect = (colors: string[]) => {
+  const handleGradientSelect = async (colors: string[]) => {
+    await setIndexByColor(colors);
     setGradientColors(colors);
     saveSetting('gradientColors', colors);
   };

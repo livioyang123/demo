@@ -7,7 +7,8 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, Vibration, View } from 'react-native';
+import { DeviceEventEmitter, Pressable, ScrollView, StyleSheet, Text, Vibration, View } from 'react-native';
+import { getColor } from '../utils/bgColor';
 
 interface CardData {
   icon: string;
@@ -25,9 +26,17 @@ export default function DiscoverScreen() {
   const [budget, setBudget] = useState(0);
   const [budgetRemaining, setBudgetRemaining] = useState(0);
   const [activeModal, setActiveModal] = useState<'invoice' | 'budget' | 'currency' | null>(null);
+  const [color, setColor] = useState(getColor());
 
   useEffect(() => {
     loadData();
+    const gradientListener = DeviceEventEmitter.addListener('gradientChanged', (colors) => {
+            setColor(colors);
+    });
+
+    return () => {
+      gradientListener.remove();
+    };
   }, []);
 
   const loadData = async () => {
@@ -118,7 +127,7 @@ export default function DiscoverScreen() {
 
   return (
     <LinearGradient
-      colors={['#d7d8b6ff', '#f2edadff', '#ffffffff']}
+      colors={[color[0], color[1], color[2]]}
       locations={[0.1, 0.2, 0.9]}
       style={styles.container}
     >
