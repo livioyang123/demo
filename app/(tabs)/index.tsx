@@ -5,8 +5,9 @@ import { useRouter } from "expo-router";
 import { useEffect, useState } from 'react';
 import { DeviceEventEmitter, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { calculateTotalForInMonth_in, calculateTotalForInMonth_out } from '@/app/services/registry';
+import { calculateTotalForInMonth_in, calculateTotalForInMonth_out } from '@/app/utils/registry';
 import DatePickerModal from '@/components/DatePickerModal';
+import Navbar from '@/components/Navbar';
 import TransactionsList from '@/components/TransactionalList';
 import { months } from '../../constants/months';
 
@@ -107,7 +108,7 @@ export default function HomeScreen() {
 
             <View style={styles.infoIn}>
               <Text style={styles.infoText}>In</Text>
-              <Pressable style={styles.infoButton} onPress={() => router.push("/monthlyInfo")}>
+              <Pressable style={styles.infoButton} >
                 <Text style={styles.text}>
                   {formatNumber(totalIn)}<Text>.</Text><Text style={styles.smallNumber}>{formatNumber(totalIn, "float")}</Text>
                 </Text>
@@ -117,7 +118,7 @@ export default function HomeScreen() {
             <View style={styles.infoOut}>
 
               <Text style={styles.infoText}>Out</Text>
-              <Pressable style={styles.infoButton} onPress={() => router.push("/monthlyInfo")}>
+              <Pressable style={styles.infoButton}>
                 <Text style={styles.text}>
                   {formatNumber(totalOut)}<Text>.</Text><Text style={styles.smallNumber}>{formatNumber(totalOut, "float")}</Text>
                 </Text>
@@ -131,7 +132,7 @@ export default function HomeScreen() {
 
         <View style={styles.navbar}>
 
-
+          <Navbar />
 
         </View>
 

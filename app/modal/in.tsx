@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { add_in } from '@/app/services/registry';
+import { add_in } from '@/app/utils/registry';
 import icons from '@/assets/icons/in/index';
 import CalculatorModal from '@/components/CalculatorModal';
 
