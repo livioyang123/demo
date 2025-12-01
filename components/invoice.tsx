@@ -1,5 +1,5 @@
 // components/Invoice.tsx
-import { calculateTotalForInMonth_in, calculateTotalForInMonth_out } from '@/app/services/registry';
+import { calculateTotalForInMonth_in, calculateTotalForInMonth_out } from '@/app/utils/registry';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import React, { useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, Vibration, View } from 'react-native';

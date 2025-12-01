@@ -1,5 +1,5 @@
 // components/Budget.tsx
-import { calculateTotalForInMonth_out } from '@/app/services/registry';
+import { calculateTotalForInMonth_out } from '@/app/utils/registry';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useState } from 'react';

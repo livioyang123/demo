@@ -20,8 +20,8 @@ import {
   delete_out_index,
   modify_in_index,
   modify_out_index,
-} from '@/app/services/registry';
-import { loadArray } from '@/app/services/storage';
+} from '@/app/utils/registry';
+import { loadArray } from '@/app/utils/storage';
 import iconsIn from '@/assets/icons/in/index';
 import iconsOut from '@/assets/icons/out/index';
 

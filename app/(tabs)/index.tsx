@@ -10,6 +10,7 @@ import DatePickerModal from '@/components/DatePickerModal';
 import Navbar from '@/components/Navbar';
 import TransactionsList from '@/components/TransactionalList';
 import { months } from '../../constants/months';
+import { getColor } from '../utils/bgColor';
 
 export default function HomeScreen() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
@@ -17,6 +18,8 @@ export default function HomeScreen() {
   const [showPicker, setShowPicker] = useState(false);
   const [totalIn, setTotalIn] = useState(0);
   const [totalOut, setTotalOut] = useState(0);
+
+  const color = getColor();
 
   const formatNumber = (num: number, type: "int" | "float" = "int") => {
     const values = num.toString().split('.');
@@ -77,7 +80,7 @@ export default function HomeScreen() {
 
   return (
     <LinearGradient
-      colors={['#d7d8b6ff', '#f2edadff', '#ffffffff']}
+      colors={[color[0], color[1], color[2]]}
       locations={[0.1, 0.2, 0.9]}
       style={styles.mainContainer}
     >
