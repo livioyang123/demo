@@ -1,16 +1,18 @@
-// app/(tabs)/discover.tsx
+// app/(tabs)/discover-refactored.tsx
 import { calculateTotalForInMonth_in, calculateTotalForInMonth_out } from '@/app/utils/registry';
 import Budget from '@/components/budget';
 import CurrencyConverter from '@/components/CurrencyConverter';
 import Invoice from '@/components/invoice';
+import UnifiedCard from '@/components/ui/UnifiedCard';
+import { iconSizes, responsive, spacing, typography } from '@/constants/design-system';
+import { useGradient } from '@/hooks/useGradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
-import { DeviceEventEmitter, Pressable, ScrollView, StyleSheet, Text, Vibration, View } from 'react-native';
-import { getColor } from '../utils/bgColor';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-interface CardData {
+interface StatCard {
   icon: string;
   iconFamily: 'Ionicons' | 'MaterialCommunityIcons';
   title: string;
@@ -26,17 +28,12 @@ export default function DiscoverScreen() {
   const [budget, setBudget] = useState(0);
   const [budgetRemaining, setBudgetRemaining] = useState(0);
   const [activeModal, setActiveModal] = useState<'invoice' | 'budget' | 'currency' | null>(null);
-  const [color, setColor] = useState(getColor());
+  
+  const { colors, accentColor, textColor } = useGradient();
 
   useEffect(() => {
     loadData();
-    const gradientListener = DeviceEventEmitter.addListener('gradientChanged', (colors) => {
-            setColor(colors);
-    });
-
-    return () => {
-      gradientListener.remove();
-    };
+    
   }, []);
 
   const loadData = async () => {
@@ -55,16 +52,7 @@ export default function DiscoverScreen() {
     setBudgetRemaining(budgetValue - outValue);
   };
 
-  const handlePress = () => {
-    Vibration.vibrate(10);
-  };
-
-  const openModal = (modal: 'invoice' | 'budget' | 'currency') => {
-    handlePress();
-    setActiveModal(modal);
-  };
-
-  const cards: CardData[] = [
+  const cards: StatCard[] = [
     {
       icon: 'trending-up',
       iconFamily: 'Ionicons',
@@ -88,7 +76,7 @@ export default function DiscoverScreen() {
       value: `€${(monthIn - monthOut).toFixed(2)}`,
       subtitle: 'Differenza entrate/uscite',
       color: monthIn - monthOut >= 0 ? '#4caf50' : '#f44336',
-      action: () => openModal('invoice'),
+      action: () => setActiveModal('invoice'),
     },
     {
       icon: 'wallet',
@@ -96,8 +84,8 @@ export default function DiscoverScreen() {
       title: 'Budget Mensile',
       value: `€${budget.toFixed(2)}`,
       subtitle: `Rimanente: €${budgetRemaining.toFixed(2)}`,
-      color: '#2196f3',
-      action: () => openModal('budget'),
+      color: accentColor,
+      action: () => setActiveModal('budget'),
     },
   ];
 
@@ -107,32 +95,32 @@ export default function DiscoverScreen() {
       iconFamily: 'Ionicons' as const,
       title: 'Resoconto',
       subtitle: 'Visualizza invoice annuale',
-      action: () => openModal('invoice'),
+      action: () => setActiveModal('invoice'),
     },
     {
       icon: 'wallet-outline',
       iconFamily: 'Ionicons' as const,
       title: 'Budget',
       subtitle: 'Gestisci il tuo budget',
-      action: () => openModal('budget'),
+      action: () => setActiveModal('budget'),
     },
     {
       icon: 'cash-multiple',
       iconFamily: 'MaterialCommunityIcons' as const,
       title: 'Conversione',
       subtitle: 'Converti valute',
-      action: () => openModal('currency'),
+      action: () => setActiveModal('currency'),
     },
   ];
 
   return (
     <LinearGradient
-      colors={[color[0], color[1], color[2]]}
+      colors={[colors[0], colors[1], colors[2]]}
       locations={[0.1, 0.2, 0.9]}
       style={styles.container}
     >
       <View style={styles.header}>
-        <Text style={styles.title}>Scopri</Text>
+        <Text style={[styles.title, { color: textColor }]}>Scopri</Text>
         <Text style={styles.subtitle}>Panoramica delle tue finanze</Text>
       </View>
 
@@ -140,26 +128,22 @@ export default function DiscoverScreen() {
         {/* Main Cards Grid */}
         <View style={styles.cardsGrid}>
           {cards.map((card, index) => (
-            <Pressable
+            <UnifiedCard
               key={index}
-              onPress={card.action ? () => { handlePress(); card.action!(); } : undefined}
-              style={({ pressed }) => [
-                styles.card,
-                pressed && styles.cardPressed,
-                !card.action && styles.cardDisabled,
-              ]}
+              onPress={card.action}
+              style={styles.card}
             >
               <View style={[styles.iconContainer, { backgroundColor: card.color + '20' }]}>
                 {card.iconFamily === 'Ionicons' ? (
-                  <Ionicons name={card.icon as any} size={24} color={card.color} />
+                  <Ionicons name={card.icon as any} size={iconSizes.lg} color={card.color} />
                 ) : (
-                  <MaterialCommunityIcons name={card.icon as any} size={24} color={card.color} />
+                  <MaterialCommunityIcons name={card.icon as any} size={iconSizes.lg} color={card.color} />
                 )}
               </View>
               <Text style={styles.cardTitle}>{card.title}</Text>
               <Text style={[styles.cardValue, { color: card.color }]}>{card.value}</Text>
               <Text style={styles.cardSubtitle}>{card.subtitle}</Text>
-            </Pressable>
+            </UnifiedCard>
           ))}
         </View>
 
@@ -167,27 +151,24 @@ export default function DiscoverScreen() {
         <View style={styles.toolsSection}>
           <Text style={styles.sectionTitle}>Strumenti</Text>
           {tools.map((tool, index) => (
-            <Pressable
+            <UnifiedCard
               key={index}
-              onPress={() => { handlePress(); tool.action(); }}
-              style={({ pressed }) => [
-                styles.toolCard,
-                pressed && styles.toolCardPressed,
-              ]}
+              onPress={tool.action}
+              style={styles.toolCard}
             >
-              <View style={styles.toolIcon}>
+              <View style={[styles.toolIcon, { backgroundColor: accentColor + '20' }]}>
                 {tool.iconFamily === 'Ionicons' ? (
-                  <Ionicons name={tool.icon as any} size={28} color="#007aff" />
+                  <Ionicons name={tool.icon as any} size={iconSizes.lg} color={accentColor} />
                 ) : (
-                  <MaterialCommunityIcons name={tool.icon as any} size={28} color="#007aff" />
+                  <MaterialCommunityIcons name={tool.icon as any} size={iconSizes.lg} color={accentColor} />
                 )}
               </View>
               <View style={styles.toolInfo}>
                 <Text style={styles.toolTitle}>{tool.title}</Text>
                 <Text style={styles.toolSubtitle}>{tool.subtitle}</Text>
               </View>
-              <Ionicons name="chevron-forward" size={24} color="#ccc" />
-            </Pressable>
+              <Ionicons name="chevron-forward" size={iconSizes.md} color="#ccc" />
+            </UnifiedCard>
           ))}
         </View>
 
@@ -195,20 +176,24 @@ export default function DiscoverScreen() {
         <View style={styles.statsSection}>
           <Text style={styles.sectionTitle}>Statistiche Rapide</Text>
           <View style={styles.statsGrid}>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{((monthIn / (monthIn + monthOut)) * 100 || 0).toFixed(0)}%</Text>
+            <UnifiedCard style={styles.statItem} padding="md">
+              <Text style={[styles.statValue, { color: accentColor }]}>
+                {((monthIn / (monthIn + monthOut)) * 100 || 0).toFixed(0)}%
+              </Text>
               <Text style={styles.statLabel}>% Entrate</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{((monthOut / (monthIn + monthOut)) * 100 || 0).toFixed(0)}%</Text>
+            </UnifiedCard>
+            <UnifiedCard style={styles.statItem} padding="md">
+              <Text style={[styles.statValue, { color: accentColor }]}>
+                {((monthOut / (monthIn + monthOut)) * 100 || 0).toFixed(0)}%
+              </Text>
               <Text style={styles.statLabel}>% Uscite</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>
+            </UnifiedCard>
+            <UnifiedCard style={styles.statItem} padding="md">
+              <Text style={[styles.statValue, { color: accentColor }]}>
                 {budget > 0 ? ((budgetRemaining / budget) * 100).toFixed(0) : 0}%
               </Text>
               <Text style={styles.statLabel}>Budget Libero</Text>
-            </View>
+            </UnifiedCard>
           </View>
         </View>
       </ScrollView>
@@ -235,120 +220,88 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingTop: 60,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
+    paddingTop: responsive(60),
+    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
   },
   title: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#070707ff',
-    marginBottom: 5,
+    ...typography.h1,
+    marginBottom: spacing.xs,
   },
   subtitle: {
-    fontSize: 16,
+    ...typography.body,
     color: '#666',
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.lg,
   },
   cardsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginBottom: 25,
+    marginBottom: spacing.lg,
   },
   card: {
     width: '48%',
-    backgroundColor: 'white',
-    borderRadius: 15,
-    padding: 15,
-    marginBottom: 15,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  cardPressed: {
-    opacity: 0.7,
-    transform: [{ scale: 0.98 }],
-  },
-  cardDisabled: {
-    opacity: 1,
+    marginBottom: spacing.md,
   },
   iconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: responsive(50),
+    height: responsive(50),
+    borderRadius: responsive(25),
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: spacing.sm,
   },
   cardTitle: {
-    fontSize: 12,
+    ...typography.small,
     color: '#666',
-    marginBottom: 5,
+    marginBottom: spacing.xs,
   },
   cardValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 5,
+    ...typography.h4,
+    marginBottom: spacing.xs,
   },
   cardSubtitle: {
-    fontSize: 11,
+    ...typography.small,
     color: '#999',
   },
   toolsSection: {
-    marginBottom: 25,
+    marginBottom: spacing.lg,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 15,
+    ...typography.h4,
+    marginBottom: spacing.md,
     color: '#333',
   },
   toolCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 10,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  toolCardPressed: {
-    opacity: 0.7,
+    marginBottom: spacing.sm,
   },
   toolIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#e3f2fd',
+    width: responsive(50),
+    height: responsive(50),
+    borderRadius: responsive(25),
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 15,
+    marginRight: spacing.md,
   },
   toolInfo: {
     flex: 1,
   },
   toolTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...typography.bodyBold,
     color: '#333',
-    marginBottom: 3,
+    marginBottom: spacing.xs / 2,
   },
   toolSubtitle: {
-    fontSize: 13,
+    ...typography.caption,
     color: '#666',
   },
   statsSection: {
-    marginBottom: 25,
+    marginBottom: spacing.lg,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -356,25 +309,15 @@ const styles = StyleSheet.create({
   },
   statItem: {
     flex: 1,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 15,
-    marginHorizontal: 5,
+    marginHorizontal: spacing.xs,
     alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
   },
   statValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#007aff',
-    marginBottom: 5,
+    ...typography.h3,
+    marginBottom: spacing.xs,
   },
   statLabel: {
-    fontSize: 11,
+    ...typography.small,
     color: '#666',
     textAlign: 'center',
   },

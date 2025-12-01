@@ -1,11 +1,15 @@
-// app/(tabs)/graph.tsx
+// app/(tabs)/graph-refactored.tsx
 import { loadArray } from '@/app/utils/storage';
+import UnifiedCard from '@/components/ui/UnifiedCard';
+import UnifiedSelector from '@/components/ui/UnifiedSelector';
+import { borderRadius, iconSizes, responsive, spacing, typography } from '@/constants/design-system';
+import { useGradient } from '@/hooks/useGradient';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
-import { DeviceEventEmitter, Dimensions, Pressable, ScrollView, StyleSheet, Text, Vibration, View } from 'react-native';
+import { Dimensions, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Line, Path, Text as SvgText } from 'react-native-svg';
-import { getColor } from '../utils/bgColor';
+
 
 type Period = 'week' | 'month' | 'year';
 type DataType = 'in' | 'out';
@@ -22,19 +26,12 @@ export default function GraphScreen() {
   const [chartData, setChartData] = useState<{ label: string; value: number }[]>([]);
   const [topTypes, setTopTypes] = useState<{ type: string; amount: number; percentage: number }[]>([]);
   const [average, setAverage] = useState(0);
-  const [color, setColor] = useState(getColor());
+  
+  const { colors, accentColor, textColor } = useGradient();
 
   useEffect(() => {
     loadData();
-
-    const gradientListener = DeviceEventEmitter.addListener('gradientChanged', (colors) => {
-      setColor(colors);
-    });
-
-    return () => {
-      gradientListener.remove();
-    };
-
+    
   }, [period, dataType]);
 
   const loadData = async () => {
@@ -54,7 +51,7 @@ export default function GraphScreen() {
         return itemDate.getFullYear() === now.getFullYear();
       }
     });
- 
+
 
     const groupedData = groupDataByPeriod(filteredData, period);
     setChartData(groupedData);
@@ -105,15 +102,22 @@ export default function GraphScreen() {
     return Object.entries(grouped).map(([label, value]) => ({ label, value }));
   };
 
-  const handlePress = () => {
-    Vibration.vibrate(10);
-  };
+  const periodOptions = [
+    { label: 'Week', value: 'week' },
+    { label: 'Month', value: 'month' },
+    { label: 'Year', value: 'year' },
+  ];
+
+  const dataTypeOptions = [
+    { label: 'In', value: 'in' },
+    { label: 'Out', value: 'out' },
+  ];
 
   const LineChart = () => {
     if (chartData.length === 0) {
       return (
         <View style={styles.emptyChart}>
-          <Text style={styles.emptyText}>Nessun dato disponibile</Text>
+          <Text style={[styles.emptyText, { color: textColor }]}>Nessun dato disponibile</Text>
         </View>
       );
     }
@@ -121,9 +125,9 @@ export default function GraphScreen() {
     const maxValue = Math.max(...chartData.map(d => d.value), 1);
     const minValue = Math.min(...chartData.map(d => d.value), 0);
     const screenWidth = Dimensions.get('window').width;
-    const chartWidth = screenWidth - 80;
-    const chartHeight = 200;
-    const padding = 40;
+    const chartWidth = screenWidth - responsive(80);
+    const chartHeight = responsive(200);
+    const padding = responsive(40);
 
     const xStep = (chartWidth - padding * 2) / (chartData.length - 1 || 1);
     const yScale = (chartHeight - padding * 2) / (maxValue - minValue || 1);
@@ -141,14 +145,14 @@ export default function GraphScreen() {
 
     const lineColor = dataType === 'in' ? '#4caf50' : '#f44336';
     const fillColor = dataType === 'in' ? 'rgba(76, 175, 80, 0.1)' : 'rgba(244, 67, 54, 0.1)';
-
+ 
     const areaPath = `${pathData} L ${points[points.length - 1].x} ${chartHeight - padding} L ${padding} ${chartHeight - padding} Z`;
 
     return (
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View style={styles.chartWrapper}>
           <Svg width={Math.max(chartWidth, points.length * 60)} height={chartHeight}>
-            {/* Griglia orizzontale */}
+ 
             {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => {
               const y = chartHeight - padding - ratio * (chartHeight - padding * 2);
               const value = minValue + ratio * (maxValue - minValue);
@@ -176,13 +180,7 @@ export default function GraphScreen() {
               );
             })}
 
-            {/* Area sotto la linea */}
-            <Path
-              d={areaPath}
-              fill={fillColor}
-            />
-
-            {/* Linea principale */}
+            <Path d={areaPath} fill={fillColor} />
             <Path
               d={pathData}
               stroke={lineColor}
@@ -192,7 +190,7 @@ export default function GraphScreen() {
               strokeLinejoin="round"
             />
 
-            {/* Punti */}
+
             {points.map((point, index) => (
               <React.Fragment key={index}>
                 <Circle
@@ -211,15 +209,7 @@ export default function GraphScreen() {
                   textAnchor="middle"
                 >
                   {point.label}
-                </SvgText>
-                <SvgText
-                  x={point.x}
-                  y={point.y - 10}
-                  fontSize="10"
-                  fill={lineColor}
-                  textAnchor="middle"
-                  fontWeight="600"
-                >
+ 
                 </SvgText>
               </React.Fragment>
             ))}
@@ -231,71 +221,64 @@ export default function GraphScreen() {
 
   return (
     <LinearGradient
-      colors={[color[0], color[1], color[2]]}
+      colors={[colors[0], colors[1],colors[2]]}
       locations={[0.1, 0.2, 0.9]}
       style={styles.container}
     >
       <View style={styles.header}>
-        <Text style={styles.title}>Grafici</Text>
+        <Text style={[styles.title, { color: textColor }]}>Grafici</Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Period Selector */}
-        <View style={styles.periodSelector}>
-          {(['week', 'month', 'year'] as Period[]).map((p) => (
-            <Pressable
-              key={p}
-              onPress={() => { handlePress(); setPeriod(p); }}
-              style={[styles.periodButton, period === p && styles.activePeriodButton]}
-            >
-              <Text style={[styles.periodText, period === p && styles.activePeriodText]}>
-                {p === 'week' ? 'Settimana' : p === 'month' ? 'Mese' : 'Anno'}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        <UnifiedSelector
+          options={periodOptions}
+          selected={period}
+          onSelect={(value) => setPeriod(value as Period)}
+          gradientColors={colors}
+          style={{ marginBottom: spacing.md }}
+        />
 
         {/* Data Type Selector */}
-        <View style={styles.typeSelector}>
-          <Pressable
-            onPress={() => { handlePress(); setDataType('in'); }}
-            style={[styles.typeButton, dataType === 'in' && styles.activeTypeButton]}
-          >
-            <Text style={[styles.typeText, dataType === 'in' && styles.activeTypeText]}>In</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => { handlePress(); setDataType('out'); }}
-            style={[styles.typeButton, dataType === 'out' && styles.activeTypeButton]}
-          >
-            <Text style={[styles.typeText, dataType === 'out' && styles.activeTypeText]}>Out</Text>
-          </Pressable>
-        </View>
+        <UnifiedSelector
+          options={dataTypeOptions}
+          selected={dataType}
+          onSelect={(value) => setDataType(value as DataType)}
+          gradientColors={colors}
+          style={{ marginBottom: spacing.md }}
+        />
 
         {/* Average Card */}
-        <View style={styles.averageCard}>
-          <Ionicons name="stats-chart" size={24} color="#007aff" />
-          <View>
-            <Text style={styles.averageLabel}>Media per {period === 'week' ? 'giorno' : period === 'month' ? 'giorno' : 'mese'}</Text>
-            <Text style={styles.averageValue}>€{average.toFixed(2)}</Text>
+        <UnifiedCard style={{ marginBottom: spacing.md }}>
+          <View style={styles.averageContent}>
+            <Ionicons name="stats-chart" size={iconSizes.lg} color={accentColor} />
+            <View>
+              <Text style={styles.averageLabel}>
+                Media per {period === 'week' ? 'giorno' : period === 'month' ? 'giorno' : 'mese'}
+              </Text>
+              <Text style={[styles.averageValue, { color: accentColor }]}>
+                €{average.toFixed(2)}
+              </Text>
+            </View>
           </View>
-        </View>
+        </UnifiedCard>
 
         {/* Line Chart */}
-        <View style={styles.chartContainer}>
+        <UnifiedCard style={{ marginBottom: spacing.md }}>
           <Text style={styles.sectionTitle}>Andamento</Text>
           <LineChart />
-        </View>
+        </UnifiedCard>
 
         {/* Top 5 */}
-        <View style={styles.topContainer}>
+        <UnifiedCard>
           <Text style={styles.sectionTitle}>Top 5 Categorie</Text>
           {topTypes.length === 0 ? (
             <Text style={styles.emptyText}>Nessuna categoria disponibile</Text>
           ) : (
             topTypes.map((item, index) => (
               <View key={index} style={styles.topItem}>
-                <View style={styles.topRank}>
-                  <Text style={styles.topRankText}>{index + 1}</Text>
+                <View style={[styles.topRank, { backgroundColor: accentColor + '20' }]}>
+                  <Text style={[styles.topRankText, { color: accentColor }]}>{index + 1}</Text>
                 </View>
                 <View style={styles.topInfo}>
                   <Text style={styles.topType}>{item.type}</Text>
@@ -318,7 +301,7 @@ export default function GraphScreen() {
               </View>
             ))
           )}
-        </View>
+        </UnifiedCard>
       </ScrollView>
     </LinearGradient>
   );
@@ -329,163 +312,93 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingTop: 60,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
+    paddingTop: responsive(60),
+    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#070707ff',
+    ...typography.h2,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.lg,
   },
-  periodSelector: {
-    flexDirection: 'row',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 4,
-    marginBottom: 15,
-  },
-  periodButton: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderRadius: 10,
-  },
-  activePeriodButton: {
-    backgroundColor: '#007aff',
-  },
-  periodText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
-  },
-  activePeriodText: {
-    color: 'white',
-  },
-  typeSelector: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 15,
-  },
-  typeButton: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 10,
-  },
-  activeTypeButton: {
-    backgroundColor: '#007aff',
-  },
-  typeText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#666',
-  },
-  activeTypeText: {
-    color: 'white',
-  },
-  averageCard: {
+  averageContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 15,
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 12,
-    marginBottom: 15,
+    gap: spacing.md,
   },
   averageLabel: {
-    fontSize: 12,
+    ...typography.small,
     color: '#666',
   },
   averageValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#007aff',
-  },
-  chartContainer: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 15,
+    ...typography.h3,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 15,
+    ...typography.bodyBold,
+    marginBottom: spacing.md,
     color: '#333',
   },
   chartWrapper: {
-    paddingVertical: 10,
+    paddingVertical: spacing.sm,
   },
   emptyChart: {
-    height: 200,
+    height: responsive(200),
     justifyContent: 'center',
     alignItems: 'center',
   },
   emptyText: {
-    fontSize: 14,
+    ...typography.caption,
     color: '#999',
     textAlign: 'center',
-  },
-  topContainer: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 20,
   },
   topItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 15,
+    gap: spacing.sm,
+    marginBottom: spacing.md,
   },
   topRank: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#f0f0f0',
+    width: responsive(30),
+    height: responsive(30),
+    borderRadius: borderRadius.round,
     justifyContent: 'center',
     alignItems: 'center',
   },
   topRankText: {
-    fontSize: 14,
+    ...typography.caption,
     fontWeight: '700',
-    color: '#007aff',
   },
   topInfo: {
     flex: 1,
   },
   topType: {
-    fontSize: 14,
+    ...typography.caption,
     fontWeight: '600',
-    marginBottom: 5,
+    marginBottom: spacing.xs,
     color: '#333',
   },
   progressBarBg: {
-    height: 8,
+    height: responsive(8),
     backgroundColor: '#e0e0e0',
-    borderRadius: 4,
+    borderRadius: borderRadius.sm,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: borderRadius.sm,
   },
   topAmount: {
     alignItems: 'flex-end',
   },
   topAmountText: {
-    fontSize: 14,
+    ...typography.caption,
     fontWeight: '600',
     color: '#333',
   },
   topPercentage: {
-    fontSize: 12,
+    ...typography.small,
     color: '#666',
   },
 });
