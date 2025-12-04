@@ -1,16 +1,18 @@
-import AntDesign from '@expo/vector-icons/AntDesign';
-import { LinearGradient } from 'expo-linear-gradient';
-
-import { useRouter } from "expo-router";
-import { useEffect, useState } from 'react';
-import { DeviceEventEmitter, Pressable, StyleSheet, Text, View } from 'react-native';
-
+// app/(tabs)/index-refactored.tsx
+import { feedback } from '@/app/utils/feedback';
 import { calculateTotalForInMonth_in, calculateTotalForInMonth_out } from '@/app/utils/registry';
 import DatePickerModal from '@/components/DatePickerModal';
 import Navbar from '@/components/Navbar';
 import TransactionsList from '@/components/TransactionalList';
-import { months } from '../../constants/months';
-import { getColor } from '../utils/bgColor';
+import UnifiedCard from '@/components/ui/UnifiedCard';
+import { borderRadius, responsive, spacing, typography } from '@/constants/design-system';
+import { months } from '@/constants/months';
+import { useGradient } from '@/hooks/useGradient';
+import { AntDesign } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { DeviceEventEmitter, Pressable, StyleSheet, Text, View } from 'react-native';
 
 export default function HomeScreen() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
@@ -18,18 +20,17 @@ export default function HomeScreen() {
   const [showPicker, setShowPicker] = useState(false);
   const [totalIn, setTotalIn] = useState(0);
   const [totalOut, setTotalOut] = useState(0);
-  const [color, setColor] = useState(getColor());
-
+  
+  const { colors, accentColor, textColor } = useGradient();
+  const router = useRouter();
 
   const formatNumber = (num: number, type: "int" | "float" = "int") => {
     const values = num.toString().split('.');
     if (type === "int") {
       return values[0];
     }
-    else {
-      return values.length > 1 ? values[1] : '00';
-    }
-  }
+    return values.length > 1 ? values[1].padEnd(2, '0') : '00';
+  };
 
   const formatDate = (mode = "full") => {
     const month = months[selectedMonth];
@@ -42,6 +43,7 @@ export default function HomeScreen() {
   };
 
   const handleDone = () => {
+    feedback.triggerFeedback('light');
     setShowPicker(false);
   };
 
@@ -50,7 +52,10 @@ export default function HomeScreen() {
     setSelectedYear(newYear);
   };
 
-  const router = useRouter();
+  const handleDatePress = () => {
+    feedback.triggerFeedback('light');
+    setShowPicker(true);
+  };
 
   useEffect(() => {
     async function fetchTotals() {
@@ -69,90 +74,107 @@ export default function HomeScreen() {
 
     const updateListener = () => {
       fetchTotals();
-    }
+    };
 
-    const gradientListener = DeviceEventEmitter.addListener('gradientChanged', (colors) => {
-        setColor(colors);
-    });
     const listener = DeviceEventEmitter.addListener('registryChanged', updateListener);
 
     return () => {
       listener.remove();
-      gradientListener.remove();
     };
   }, [selectedMonth, selectedYear]);
 
   return (
     <LinearGradient
-      colors={[color[0], color[1], color[2]]}
+      colors={[colors[0], colors[1], colors[2]]}
       locations={[0.1, 0.2, 0.9]}
       style={styles.mainContainer}
     >
+      {/* App Name/Logo */}
       <View style={styles.appName}>
-        <Text style={styles.text}>L</Text>
+        <Text style={[styles.logoText, { color: accentColor }]}>L</Text>
       </View>
 
+      {/* Header */}
       <View style={styles.header}>
-
         <View style={styles.overView}>
-
+          {/* Date Selector */}
           <View style={styles.dataSelector}>
-
-            <Text style={styles.selectedText}>{selectedYear}</Text>
+            <Text style={[styles.selectedYear, { color: textColor }]}>
+              {selectedYear}
+            </Text>
 
             <Pressable
               style={styles.dateButton}
-              onPress={() => setShowPicker(true)}
+              onPress={handleDatePress}
             >
-              <Text style={styles.dateText}>
-                {formatDate("month")} <AntDesign name="caret-down" size={20} color="black" />
-              </Text>
+              <View style={styles.dateRow}>
+                <Text style={[styles.dateText, { color: textColor }]}>
+                  {formatDate("month")}
+                </Text>
+                <AntDesign name="caret-down" size={responsive(12)} color={textColor} />
+              </View>
             </Pressable>
-
           </View>
 
+          {/* Info Cards */}
           <View style={styles.info}>
-
-            <View style={styles.infoIn}>
-              <Text style={styles.infoText}>In</Text>
-              <Pressable style={styles.infoButton} >
-                <Text style={styles.text}>
-                  {formatNumber(totalIn)}<Text>.</Text><Text style={styles.smallNumber}>{formatNumber(totalIn, "float")}</Text>
+            {/* In Card */}
+            <UnifiedCard 
+              style={styles.infoCard }
+              padding="sm"
+            >
+              <Text style={styles.infoLabel}>In</Text>
+              <View style={styles.amountRow}>
+                <Text style={[styles.amountInteger, { color: '#4caf50' }]}>
+                  {formatNumber(totalIn)}
                 </Text>
-              </Pressable >
-            </View>
-
-            <View style={styles.infoOut}>
-
-              <Text style={styles.infoText}>Out</Text>
-              <Pressable style={styles.infoButton}>
-                <Text style={styles.text}>
-                  {formatNumber(totalOut)}<Text>.</Text><Text style={styles.smallNumber}>{formatNumber(totalOut, "float")}</Text>
+                <Text style={[styles.amountDecimal, { color: '#4caf50' }]}>
+                  .{formatNumber(totalIn, "float")}
                 </Text>
-              </Pressable>
+              </View>
+            </UnifiedCard>
 
-            </View>
-
+            {/* Out Card */}
+            <UnifiedCard 
+              style={styles.infoCard}
+              padding="sm"
+            >
+              <Text style={styles.infoLabel}>Out</Text>
+              <View style={styles.amountRow}>
+                <Text style={[styles.amountInteger, { color: '#f44336' }]}>
+                  {formatNumber(totalOut)}
+                </Text>
+                <Text style={[styles.amountDecimal, { color: '#f44336' }]}>
+                  .{formatNumber(totalOut, "float")}
+                </Text>
+              </View>
+            </UnifiedCard>
           </View>
-
         </View>
 
-        <View style={styles.navbar}>
-
+        {/* Navbar */}
+        <UnifiedCard 
+          style={styles.navbar}
+          elevation="lg"
+        >
           <Navbar />
-
-        </View>
-
+        </UnifiedCard>
       </View>
 
-      <View style={styles.body}>
+      {/* Transactions List */}
+      <UnifiedCard 
+        style={styles.body}
+        elevation="lg"
+        padding="none"
+      >
         <TransactionsList
           selectedMonth={selectedMonth}
           selectedYear={selectedYear}
           onMonthChange={handleMonthChange}
         />
-      </View>
+      </UnifiedCard>
 
+      {/* Date Picker Modal */}
       <DatePickerModal
         visible={showPicker}
         selectedMonth={selectedMonth}
@@ -163,141 +185,106 @@ export default function HomeScreen() {
         onClose={() => setShowPicker(false)}
         onDone={handleDone}
       />
-
     </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
+
   mainContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     position: 'relative',
-    flexDirection: "column",
-
+    
   },
   appName: {
-    width: 200,
-    height: 50,
+    width: responsive(200),
+    height: responsive(50),
     justifyContent: 'center',
     alignItems: 'center',
     position: 'absolute',
     top: '4%',
-
+    alignSelf: 'center',
   },
-  text: {
-    marginBottom: 5,
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#070707ff',
-    fontFamily: "sans-serif-condensed",
+  logoText: {
+    ...typography.h1,
+    fontFamily: 'sans-serif-condensed',
   },
-
   header: {
     width: '96%',
     position: 'absolute',
-    top: "10%",
-    flexDirection: "column",
-    margin: 10,
+    top: '10%',
+    alignSelf: 'center',
   },
   overView: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    position: "relative",
-    width: '98%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    position: 'relative',
+    width: '100%',
   },
   dataSelector: {
-    marginLeft: 10,
-    position: "absolute",
+    marginLeft: spacing.sm,
+    position: 'absolute',
     left: 0,
   },
-  info: {
-    position: "absolute",
-    right: 0,
-    width: '70%',
-    textAlign: "left",
-    flexDirection: "row",
-    justifyContent: "space-around",
-
+  selectedYear: {
+    ...typography.body,
   },
-  infoIn: {
-    position: "absolute",
-    left: 0,
-    width: '50%',
-
-  },
-  infoOut: {
-    position: "absolute",
-    right: 0,
-    width: '50%',
-  },
-  infoText: {
-    fontSize: 16,
-    color: '#070707ff',
-    marginBottom: 5,
-  },
-  infoButton: {
-    elevation: 3,
-
-  },
-  navbar: {
-    width: '98%',
-    position: "absolute",
-    backgroundColor: "white",
-    flexDirection: "row",
-    justifyContent: "space-around",
-    top: 60,
-    height: 60,
-
-    borderColor: "#d3d3d3",
-    borderWidth: 1,
-    borderRadius: 10,
-  },
-  body: {
-    flex: 1,
-    overflow: "hidden",
-    width: '98%',
-    position: "relative",
-    top: 130,
-    backgroundColor: "white",
-    borderRadius: 15,
-    borderColor: "#d3d3d3",
-    borderWidth: 1,
-    maxHeight:600,
-    marginTop:30,
-
-  },
-
   dateButton: {
-    elevation: 3,
-
+    marginTop: spacing.xs,
+  },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
   },
   dateText: {
-    marginTop: 5,
-    fontSize: 20,
-    color: '#070707ff',
-    fontWeight: '600',
+    ...typography.h4,
+  },
+  info: {
+    position: 'absolute',
+    right: 0,
+    width: '70%',
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    gap: spacing.sm,
+  },
+  infoCard: {
+    flex: 1,
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
 
   },
-  selectedText: {
-    fontSize: 16,
-    color: '#070707ff',
+  infoLabel: {
+    ...typography.body,
+    color: '#070707',
+    marginBottom: spacing.xs,
   },
-  openButton: {
-    marginTop: 30,
-    backgroundColor: '#007aff',
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 10,
+  amountRow: {
+    paddingLeft: spacing.xs,
+    flexDirection: 'row',
+    alignItems: 'baseline',
   },
-  openButtonText: {
-    color: 'white',
-    fontSize: 18,
+  amountInteger: {
+    ...typography.h3,
+    fontWeight: '700',
+  },
+  amountDecimal: {
+    ...typography.caption,
     fontWeight: '600',
+    marginLeft: responsive(2),
   },
-  smallNumber: {
-    color: '#887070ff',
-    fontSize: 14,
+  navbar: {
+    width: '100%',
+    height: responsive(60),
+    marginTop: responsive(85),
+    paddingBottom: responsive(30),
   },
-});  
+  body: {
+    width: '96%',
+    position: 'absolute',
+    top: responsive(230),
+    alignSelf: 'center',
+    bottom: responsive(20),
+    borderRadius: borderRadius.xl
+  },
+});

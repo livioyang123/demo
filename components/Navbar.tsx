@@ -1,71 +1,66 @@
-// components/Navbar.tsx
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+// components/Navbar-refactored.tsx
+import { iconSizes } from '@/constants/design-system';
+import { useGradient } from '@/hooks/useGradient';
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, Vibration, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Budget from './budget';
 import CurrencyConverter from './CurrencyConverter';
 import Invoice from './invoice';
+import UnifiedButton from './ui/UnifiedButton';
 
 interface NavbarTool {
-  icon: keyof typeof Ionicons.glyphMap | keyof typeof MaterialCommunityIcons.glyphMap;
+  icon: string;
   component: 'invoice' | 'budget' | 'currency';
   iconFamily: 'Ionicons' | 'MaterialCommunityIcons';
+  label: string;
 }
 
 const tools: NavbarTool[] = [
-  { icon: 'receipt-outline', component: 'invoice', iconFamily: 'Ionicons' },
-  { icon: 'wallet-outline', component: 'budget', iconFamily: 'Ionicons' },
-  { icon: 'cash-multiple', component: 'currency', iconFamily: 'MaterialCommunityIcons' },
+  { 
+    icon: 'receipt-outline', 
+    component: 'invoice', 
+    iconFamily: 'Ionicons',
+    label: 'Resoconto'
+  },
+  { 
+    icon: 'wallet-outline', 
+    component: 'budget', 
+    iconFamily: 'Ionicons',
+    label: 'Budget'
+  },
+  { 
+    icon: 'cash-multiple', 
+    component: 'currency', 
+    iconFamily: 'MaterialCommunityIcons',
+    label: 'Conversione'
+  },
 ];
 
 export default function Navbar() {
   const [activeModal, setActiveModal] = useState<'invoice' | 'budget' | 'currency' | null>(null);
-
-  const handlePress = (component: 'invoice' | 'budget' | 'currency') => {
-    Vibration.vibrate(10);
-    setActiveModal(component);
-  };
-
-  const renderIcon = (tool: NavbarTool) => {
-    if (tool.iconFamily === 'Ionicons') {
-      return (
-        <Ionicons 
-          name={tool.icon as keyof typeof Ionicons.glyphMap} 
-          size={24} 
-          color="#007aff" 
-        />
-      );
-    } else {
-      return (
-        <MaterialCommunityIcons 
-          name={tool.icon as keyof typeof MaterialCommunityIcons.glyphMap} 
-          size={24} 
-          color="#007aff" 
-        />
-      );
-    }
-  };
+  const { accentColor } = useGradient();
 
   return (
     <>
       <View style={styles.container}>
         {tools.map((tool, index) => (
-          <Pressable
+          <UnifiedButton
             key={index}
-            onPress={() => handlePress(tool.component)}
-            style={({ pressed }) => [
-              styles.toolButton,
-              pressed && styles.toolButtonPressed
-            ]}
-          >
-            {renderIcon(tool)}
-          </Pressable>
+            icon={tool.icon as any}
+            iconFamily={tool.iconFamily}
+            iconColor={accentColor}
+            iconSize={iconSizes.lg}
+            variant="ghost"
+            onPress={() => setActiveModal(tool.component)}
+            feedbackType="light"
+          />
         ))}
       </View>
 
       <Invoice 
         visible={activeModal === 'invoice'} 
         onClose={() => setActiveModal(null)} 
+        
       />
       <Budget 
         visible={activeModal === 'budget'} 
@@ -82,17 +77,11 @@ export default function Navbar() {
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    height: '100%',
+    height: 55,
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-  },
-  toolButton: {
-    padding: 10,
-    borderRadius: 10,
-    backgroundColor: '#f9f9f9',
-  },
-  toolButtonPressed: {
-    backgroundColor: '#e0e0e0',
+    paddingBottom: 5,
+    transform: [{ translateY: -10 }],
   },
 });

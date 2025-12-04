@@ -1,11 +1,16 @@
-// app/(tabs)/profile.tsx
+// app/(tabs)/profile-refactored.tsx
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
-import { Alert, DeviceEventEmitter, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, Vibration, View } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
 import { getAllGradients, setIndexByColor } from '@/app/utils/bgColor';
+import { feedback } from '@/app/utils/feedback';
+import UnifiedButton from '@/components/ui/UnifiedButton';
+import UnifiedCard from '@/components/ui/UnifiedCard';
+import { borderRadius, iconSizes, responsive, spacing, typography } from '@/constants/design-system';
+import { useGradient } from '@/hooks/useGradient';
 
 interface ColorPickerProps {
   visible: boolean;
@@ -23,30 +28,33 @@ function ColorPicker({ visible, onClose, onSelect, currentColors }: ColorPickerP
         <View style={colorPickerStyles.container}>
           <View style={colorPickerStyles.header}>
             <Text style={colorPickerStyles.title}>Scegli Gradiente</Text>
-            <Pressable onPress={onClose}>
-              <Ionicons name="close" size={24} color="#666" />
-            </Pressable>
+            <UnifiedButton
+              icon="close"
+              iconColor="#666"
+              variant="ghost"
+              onPress={onClose}
+            />
           </View>
           <ScrollView>
             {gradientPresets.map((preset, index) => (
               <Pressable
                 key={index}
                 onPress={() => {
-                  Vibration.vibrate(10);
+                  feedback.triggerFeedback('light');
                   onSelect(preset.colors);
                   onClose();
                 }}
                 style={colorPickerStyles.presetItem}
               >
                 <LinearGradient
-                  colors={[preset.colors[0], preset.colors[1], preset.colors[2]]} // modifield
+                  colors={[preset.colors[0], preset.colors[1], preset.colors[2]]}
                   style={colorPickerStyles.gradientPreview}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                 />
                 <Text style={colorPickerStyles.presetName}>{preset.name}</Text>
                 {JSON.stringify(preset.colors) === JSON.stringify(currentColors) && (
-                  <Ionicons name="checkmark-circle" size={24} color="#007aff" />
+                  <Ionicons name="checkmark-circle" size={iconSizes.lg} color="#007aff" />
                 )}
               </Pressable>
             ))}
@@ -63,35 +71,34 @@ export default function ProfileScreen() {
   const [notifications, setNotifications] = useState(true);
   const [biometric, setBiometric] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
-  const [gradientColors, setGradientColors] = useState(['#d7d8b6ff', '#f2edadff', '#ffffffff']);
+
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [isEditingUsername, setIsEditingUsername] = useState(false);
+
+  const { colors, accentColor, textColor } = useGradient();
 
   useEffect(() => {
     loadSettings();
 
-    const listener = DeviceEventEmitter.addListener('gradientChanged', (colors) => {
-    setGradientColors(colors);
-  });
-  
-  return () => listener.remove();
+
   }, []);
 
   const loadSettings = async () => {
     try {
+
       const savedUsername = await AsyncStorage.getItem('username');
       const savedCurrency = await AsyncStorage.getItem('currency');
       const savedNotifications = await AsyncStorage.getItem('notifications');
       const savedBiometric = await AsyncStorage.getItem('biometric');
       const savedDarkMode = await AsyncStorage.getItem('darkMode');
-      const savedGradient = await AsyncStorage.getItem('gradientColors');
+
 
       if (savedUsername) setUsername(savedUsername);
       if (savedCurrency) setCurrency(savedCurrency);
       if (savedNotifications) setNotifications(savedNotifications === 'true');
       if (savedBiometric) setBiometric(savedBiometric === 'true');
       if (savedDarkMode) setDarkMode(savedDarkMode === 'true');
-      if (savedGradient) setGradientColors(JSON.parse(savedGradient));
+
     } catch (e) {
       console.error('Errore caricamento impostazioni:', e);
     }
@@ -105,24 +112,21 @@ export default function ProfileScreen() {
     }
   };
 
-  const handlePress = () => {
-    Vibration.vibrate(10);
-  };
 
   const saveUsername = () => {
-    handlePress();
+    feedback.triggerFeedback('success');
     saveSetting('username', username);
     setIsEditingUsername(false);
   };
 
-  const handleGradientSelect = async (colors: string[]) => {
-    await setIndexByColor(colors);
-    setGradientColors(colors);
-    saveSetting('gradientColors', colors);
+  const handleGradientSelect = async (newColors: string[]) => {
+    await setIndexByColor(newColors);
+    saveSetting('gradientColors', newColors);
+    feedback.triggerFeedback('success');
   };
 
   const resetData = () => {
-    handlePress();
+    feedback.triggerFeedback('warning');
     Alert.alert(
       'Conferma Reset',
       'Sei sicuro di voler cancellare tutti i dati? Questa azione non può essere annullata.',
@@ -134,6 +138,7 @@ export default function ProfileScreen() {
           onPress: async () => {
             try {
               await AsyncStorage.clear();
+              feedback.triggerFeedback('error');
               Alert.alert('Successo', 'Tutti i dati sono stati cancellati');
               loadSettings();
             } catch (e) {
@@ -145,21 +150,49 @@ export default function ProfileScreen() {
     );
   };
 
+  const SettingRow = ({ 
+    icon, 
+    label, 
+    value, 
+    onPress, 
+    rightElement 
+  }: { 
+    icon: string; 
+    label: string; 
+    value?: string;
+    onPress?: () => void;
+    rightElement?: React.ReactNode;
+  }) => (
+    <UnifiedCard
+      onPress={onPress}
+      style={styles.settingRow}
+      elevation="none"
+      padding="md"
+    >
+      <View style={styles.settingLeft}>
+        <Ionicons name={icon as any} size={iconSizes.lg} color={accentColor} />
+        <Text style={styles.settingText}>{label}</Text>
+      </View>
+      {value && <Text style={styles.settingValue}>{value}</Text>}
+      {rightElement}
+    </UnifiedCard>
+  );
+
   return (
     <LinearGradient
-      colors={[gradientColors[0],gradientColors[1],gradientColors[2]]}// modifield
+      colors={[colors[0], colors[1], colors[2]]}
       locations={[0.1, 0.2, 0.9]}
       style={styles.container}
     >
       <View style={styles.header}>
-        <Text style={styles.title}>Profilo</Text>
+        <Text style={[styles.title, { color: textColor }]}>Profilo</Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Profile Card */}
-        <View style={styles.profileCard}>
-          <View style={styles.avatar}>
-            <Ionicons name="person" size={40} color="#007aff" />
+        <UnifiedCard style={styles.profileCard}>
+          <View style={[styles.avatar, { backgroundColor: accentColor + '20' }]}>
+            <Ionicons name="person" size={responsive(40)} color={accentColor} />
           </View>
           {isEditingUsername ? (
             <View style={styles.usernameEdit}>
@@ -169,108 +202,128 @@ export default function ProfileScreen() {
                 onChangeText={setUsername}
                 autoFocus
               />
-              <Pressable onPress={saveUsername} style={styles.saveButton}>
-                <Ionicons name="checkmark" size={24} color="#007aff" />
-              </Pressable>
+              <UnifiedButton
+                icon="checkmark"
+                iconColor={accentColor}
+                variant="ghost"
+                onPress={saveUsername}
+                feedbackType="success"
+              />
             </View>
           ) : (
-            <Pressable onPress={() => { handlePress(); setIsEditingUsername(true); }}>
+            <UnifiedCard 
+              onPress={() => {
+                feedback.triggerFeedback('light');
+                setIsEditingUsername(true);
+              }}
+              elevation="none"
+            >
               <Text style={styles.username}>{username}</Text>
               <Text style={styles.editHint}>Tocca per modificare</Text>
-            </Pressable>
+            </UnifiedCard>
           )}
-        </View>
+        </UnifiedCard>
 
         {/* Appearance Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Aspetto</Text>
           
-          <Pressable
-            onPress={() => { handlePress(); setShowColorPicker(true); }}
-            style={styles.settingItem}
-          >
-            <View style={styles.settingLeft}>
-              <Ionicons name="color-palette" size={24} color="#007aff" />
-              <Text style={styles.settingText}>Gradiente</Text>
-            </View>
-            <View style={styles.gradientPreview}>
-              <LinearGradient
-                colors={[gradientColors[0], gradientColors[1], gradientColors[2]]} // modifield
-                style={styles.miniGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              />
-              <Ionicons name="chevron-forward" size={20} color="#ccc" />
-            </View>
-          </Pressable>
+          <SettingRow
+            icon="color-palette"
+            label="Gradiente"
+            onPress={() => {
+              feedback.triggerFeedback('light');
+              setShowColorPicker(true);
+            }}
+            rightElement={
+              <View style={styles.gradientPreview}>
+                <LinearGradient
+                  colors={[colors[0], colors[1], colors[2]]}
+                  style={styles.miniGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                />
+                <Ionicons name="chevron-forward" size={iconSizes.md} color="#ccc" />
+              </View>
+            }
+          />
 
-          <View style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="moon" size={24} color="#007aff" />
-              <Text style={styles.settingText}>Modalità Scura</Text>
-            </View>
-            <Switch
-              value={darkMode}
-              onValueChange={(value) => {
-                handlePress();
-                setDarkMode(value);
-                saveSetting('darkMode', value);
-              }}
-            />
-          </View>
+          <SettingRow
+            icon="moon"
+            label="Modalità Scura"
+            rightElement={
+              <Switch
+                value={darkMode}
+                onValueChange={(value) => {
+                  feedback.triggerFeedback('light');
+                  setDarkMode(value);
+                  saveSetting('darkMode', value);
+                }}
+                trackColor={{ false: '#767577', true: accentColor }}
+                thumbColor={darkMode ? '#fff' : '#f4f3f4'}
+              />
+            }
+          />
         </View>
 
         {/* General Settings */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Impostazioni Generali</Text>
           
-          <View style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="cash" size={24} color="#007aff" />
-              <Text style={styles.settingText}>Valuta</Text>
-            </View>
-            <Text style={styles.settingValue}>{currency}</Text>
-          </View>
+          <SettingRow
+            icon="cash"
+            label="Valuta"
+            value={currency}
+          />
 
-          <View style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="notifications" size={24} color="#007aff" />
-              <Text style={styles.settingText}>Notifiche</Text>
-            </View>
-            <Switch
-              value={notifications}
-              onValueChange={(value) => {
-                handlePress();
-                setNotifications(value);
-                saveSetting('notifications', value);
-              }}
-            />
-          </View>
+          <SettingRow
+            icon="notifications"
+            label="Notifiche"
+            rightElement={
+              <Switch
+                value={notifications}
+                onValueChange={(value) => {
+                  feedback.triggerFeedback('light');
+                  setNotifications(value);
+                  saveSetting('notifications', value);
+                }}
+                trackColor={{ false: '#767577', true: accentColor }}
+                thumbColor={notifications ? '#fff' : '#f4f3f4'}
+              />
+            }
+          />
 
-          <View style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="finger-print" size={24} color="#007aff" />
-              <Text style={styles.settingText}>Biometrico</Text>
-            </View>
-            <Switch
-              value={biometric}
-              onValueChange={(value) => {
-                handlePress();
-                setBiometric(value);
-                saveSetting('biometric', value);
-              }}
-            />
-          </View>
+          <SettingRow
+            icon="finger-print"
+            label="Biometrico"
+            rightElement={
+              <Switch
+                value={biometric}
+                onValueChange={(value) => {
+                  feedback.triggerFeedback('light');
+                  setBiometric(value);
+                  saveSetting('biometric', value);
+                }}
+                trackColor={{ false: '#767577', true: accentColor }}
+                thumbColor={biometric ? '#fff' : '#f4f3f4'}
+              />
+            }
+          />
         </View>
 
         {/* Data Management */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Gestione Dati</Text>
           
-          <Pressable onPress={resetData} style={styles.dangerItem}>
-            <Ionicons name="trash" size={24} color="#f44336" />
+          <UnifiedButton
+            icon="trash"
+            iconColor="#f44336"
+            onPress={resetData}
+            variant="ghost"
+            feedbackType="warning"
+          >
             <Text style={styles.dangerText}>Cancella tutti i dati</Text>
-          </Pressable>
+          </UnifiedButton>
         </View>
 
         {/* App Info */}
@@ -284,7 +337,7 @@ export default function ProfileScreen() {
         visible={showColorPicker}
         onClose={() => setShowColorPicker(false)}
         onSelect={handleGradientSelect}
-        currentColors={gradientColors}
+        currentColors={colors}
       />
     </LinearGradient>
   );
@@ -295,126 +348,105 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingTop: 60,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
+    paddingTop: responsive(60),
+    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
   },
   title: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#070707ff',
+    ...typography.h1,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.lg,
   },
   profileCard: {
-    backgroundColor: 'white',
-    borderRadius: 15,
-    padding: 20,
+
     alignItems: 'center',
-    marginBottom: 25,
-    elevation: 2,
+    marginBottom: spacing.lg,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#e3f2fd',
+    width: responsive(80),
+    height: responsive(80),
+    borderRadius: responsive(40),
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: spacing.md,
   },
   username: {
-    fontSize: 24,
-    fontWeight: '600',
+    ...typography.h3,
     color: '#333',
+    textAlign: 'center',
   },
   editHint: {
-    fontSize: 12,
+    ...typography.small,
     color: '#999',
-    marginTop: 5,
+    marginTop: spacing.xs,
     textAlign: 'center',
   },
   usernameEdit: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: spacing.sm,
   },
   usernameInput: {
     borderBottomWidth: 1,
     borderBottomColor: '#007aff',
-    fontSize: 24,
-    fontWeight: '600',
-    minWidth: 150,
+    ...typography.h3,
+    minWidth: responsive(150),
     textAlign: 'center',
   },
-  saveButton: {
-    padding: 5,
-  },
+
   section: {
-    backgroundColor: 'white',
-    borderRadius: 15,
-    padding: 15,
-    marginBottom: 15,
-    elevation: 2,
+    marginBottom: spacing.md,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...typography.bodyBold,
     color: '#333',
-    marginBottom: 15,
+    marginBottom: spacing.md,
+    marginLeft: spacing.sm,
   },
-  settingItem: {
+  settingRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    marginBottom: spacing.xs,
   },
   settingLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 15,
+    gap: spacing.md,
   },
   settingText: {
-    fontSize: 16,
+    ...typography.body,
     color: '#333',
   },
   settingValue: {
-    fontSize: 16,
+    ...typography.body,
     color: '#666',
   },
   gradientPreview: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: spacing.sm,
   },
   miniGradient: {
-    width: 50,
-    height: 30,
-    borderRadius: 6,
-  },
-  dangerItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 15,
-    paddingVertical: 12,
+    width: responsive(50),
+    height: responsive(30),
+    borderRadius: borderRadius.sm,
   },
   dangerText: {
-    fontSize: 16,
+    ...typography.bodyBold,
     color: '#f44336',
-    fontWeight: '600',
+    marginLeft: spacing.xs,
   },
   infoSection: {
     alignItems: 'center',
-    paddingVertical: 20,
+    paddingVertical: spacing.lg,
   },
   infoText: {
-    fontSize: 12,
+    ...typography.small,
     color: '#999',
-    marginBottom: 5,
+    marginBottom: spacing.xs,
   },
 });
 
@@ -426,38 +458,37 @@ const colorPickerStyles = StyleSheet.create({
   },
   container: {
     backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
     maxHeight: '70%',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...typography.h4,
   },
   presetItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 15,
+    padding: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
   gradientPreview: {
-    width: 60,
-    height: 40,
-    borderRadius: 8,
-    marginRight: 15,
+    width: responsive(60),
+    height: responsive(40),
+    borderRadius: borderRadius.sm,
+    marginRight: spacing.md,
   },
   presetName: {
     flex: 1,
-    fontSize: 16,
+    ...typography.body,
     color: '#333',
   },
 });

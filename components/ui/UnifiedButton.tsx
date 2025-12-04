@@ -17,7 +17,7 @@ interface UnifiedButtonProps {
   disabled?: boolean;
   style?: ViewStyle;
   textStyle?: TextStyle;
-  feedbackType?: 'light' | 'medium' | 'heavy' | 'success';
+  feedbackType?: 'light' | 'medium' | 'heavy' | 'success' | 'warning' | 'error';
 }
 
 export default function UnifiedButton({
