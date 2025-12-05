@@ -1,10 +1,11 @@
-// app/(tabs)/index-refactored.tsx
+// app/(tabs)/index.tsx
 import { feedback } from '@/app/utils/feedback';
 import { calculateTotalForInMonth_in, calculateTotalForInMonth_out } from '@/app/utils/registry';
 import DatePickerModal from '@/components/DatePickerModal';
 import Navbar from '@/components/Navbar';
 import TransactionsList from '@/components/TransactionalList';
 import UnifiedCard from '@/components/ui/UnifiedCard';
+import VoiceInputButton from '@/components/voiceInputButton';
 import { borderRadius, responsive, spacing, typography } from '@/constants/design-system';
 import { months } from '@/constants/months';
 import { useGradient } from '@/hooks/useGradient';
@@ -20,24 +21,24 @@ export default function HomeScreen() {
   const [showPicker, setShowPicker] = useState(false);
   const [totalIn, setTotalIn] = useState(0);
   const [totalOut, setTotalOut] = useState(0);
-  
+
   const { colors, accentColor, textColor } = useGradient();
   const router = useRouter();
 
-  const formatNumber = (num: number, type: "int" | "float" = "int") => {
+  const formatNumber = (num: number, type: 'int' | 'float' = 'int') => {
     const values = num.toString().split('.');
-    if (type === "int") {
+    if (type === 'int') {
       return values[0];
     }
     return values.length > 1 ? values[1].padEnd(2, '0') : '00';
   };
 
-  const formatDate = (mode = "full") => {
+  const formatDate = (mode = 'full') => {
     const month = months[selectedMonth];
     const year = selectedYear;
 
-    if (mode === "month") return month;
-    if (mode === "year") return year;
+    if (mode === 'month') return month;
+    if (mode === 'year') return year;
 
     return `${month} ${year}`;
   };
@@ -60,8 +61,12 @@ export default function HomeScreen() {
   useEffect(() => {
     async function fetchTotals() {
       try {
-        const inValue = await calculateTotalForInMonth_in(selectedYear + "-" + (selectedMonth + 1));
-        const outValue = await calculateTotalForInMonth_out(selectedYear + "-" + (selectedMonth + 1));
+        const inValue = await calculateTotalForInMonth_in(
+          selectedYear + '-' + (selectedMonth + 1)
+        );
+        const outValue = await calculateTotalForInMonth_out(
+          selectedYear + '-' + (selectedMonth + 1)
+        );
 
         setTotalIn(inValue);
         setTotalOut(outValue);
@@ -99,17 +104,12 @@ export default function HomeScreen() {
         <View style={styles.overView}>
           {/* Date Selector */}
           <View style={styles.dataSelector}>
-            <Text style={[styles.selectedYear, { color: textColor }]}>
-              {selectedYear}
-            </Text>
+            <Text style={[styles.selectedYear, { color: textColor }]}>{selectedYear}</Text>
 
-            <Pressable
-              style={styles.dateButton}
-              onPress={handleDatePress}
-            >
+            <Pressable style={styles.dateButton} onPress={handleDatePress}>
               <View style={styles.dateRow}>
                 <Text style={[styles.dateText, { color: textColor }]}>
-                  {formatDate("month")}
+                  {formatDate('month')}
                 </Text>
                 <AntDesign name="caret-down" size={responsive(12)} color={textColor} />
               </View>
@@ -119,33 +119,27 @@ export default function HomeScreen() {
           {/* Info Cards */}
           <View style={styles.info}>
             {/* In Card */}
-            <UnifiedCard 
-              style={styles.infoCard }
-              padding="sm"
-            >
+            <UnifiedCard style={styles.infoCard} padding="sm">
               <Text style={styles.infoLabel}>In</Text>
               <View style={styles.amountRow}>
                 <Text style={[styles.amountInteger, { color: '#4caf50' }]}>
                   {formatNumber(totalIn)}
                 </Text>
                 <Text style={[styles.amountDecimal, { color: '#4caf50' }]}>
-                  .{formatNumber(totalIn, "float")}
+                  .{formatNumber(totalIn, 'float')}
                 </Text>
               </View>
             </UnifiedCard>
 
             {/* Out Card */}
-            <UnifiedCard 
-              style={styles.infoCard}
-              padding="sm"
-            >
+            <UnifiedCard style={styles.infoCard} padding="sm">
               <Text style={styles.infoLabel}>Out</Text>
               <View style={styles.amountRow}>
                 <Text style={[styles.amountInteger, { color: '#f44336' }]}>
                   {formatNumber(totalOut)}
                 </Text>
                 <Text style={[styles.amountDecimal, { color: '#f44336' }]}>
-                  .{formatNumber(totalOut, "float")}
+                  .{formatNumber(totalOut, 'float')}
                 </Text>
               </View>
             </UnifiedCard>
@@ -153,26 +147,22 @@ export default function HomeScreen() {
         </View>
 
         {/* Navbar */}
-        <UnifiedCard 
-          style={styles.navbar}
-          elevation="lg"
-        >
+        <UnifiedCard style={styles.navbar} elevation="lg">
           <Navbar />
         </UnifiedCard>
       </View>
 
       {/* Transactions List */}
-      <UnifiedCard 
-        style={styles.body}
-        elevation="lg"
-        padding="none"
-      >
+      <UnifiedCard style={styles.body} elevation="lg" padding="none">
         <TransactionsList
           selectedMonth={selectedMonth}
           selectedYear={selectedYear}
           onMonthChange={handleMonthChange}
         />
       </UnifiedCard>
+
+      {/* Voice Input Button */}
+      <VoiceInputButton />
 
       {/* Date Picker Modal */}
       <DatePickerModal
@@ -190,11 +180,11 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-
+  
   mainContainer: {
     flex: 1,
     position: 'relative',
-    
+
   },
   appName: {
     width: responsive(200),
@@ -285,6 +275,6 @@ const styles = StyleSheet.create({
     top: responsive(230),
     alignSelf: 'center',
     bottom: responsive(20),
-    borderRadius: borderRadius.xl
+    borderRadius: borderRadius.xl,
   },
 });

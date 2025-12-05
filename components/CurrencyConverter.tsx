@@ -1,14 +1,31 @@
 // components/CurrencyConverter.tsx
-import AntDesign from '@expo/vector-icons/AntDesign';
+import { borderRadius, iconSizes, responsive, shadows, spacing, typography } from '@/constants/design-system';
+import { useGradient } from '@/hooks/useGradient';
+import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, Vibration, View } from 'react-native';
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View
+} from 'react-native';
 
 interface CurrencyConverterProps {
   visible: boolean;
   onClose: () => void;
 }
 
-const currencies = [
+interface Currency {
+  code: string;
+  name: string;
+  symbol: string;
+  rate: number;
+}
+
+const currencies: Currency[] = [
   { code: 'EUR', name: 'Euro', symbol: '€', rate: 1 },
   { code: 'USD', name: 'US Dollar', symbol: '$', rate: 1.09 },
   { code: 'GBP', name: 'British Pound', symbol: '£', rate: 0.86 },
@@ -20,71 +37,123 @@ const currencies = [
 ];
 
 export default function CurrencyConverter({ visible, onClose }: CurrencyConverterProps) {
-  const [amount, setAmount] = useState('1');
   const [fromCurrency, setFromCurrency] = useState(currencies[0]);
   const [toCurrency, setToCurrency] = useState(currencies[1]);
+  const [fromAmount, setFromAmount] = useState('1');
   const [showFromPicker, setShowFromPicker] = useState(false);
   const [showToPicker, setShowToPicker] = useState(false);
 
-  const handlePress = () => {
-    Vibration.vibrate(10);
-  };
+  const { colors, accentColor, textColor } = useGradient();
 
-  const convert = () => {
+  const convert = (amount: string, from: Currency, to: Currency): string => {
     const value = parseFloat(amount) || 0;
-    const inEuro = value / fromCurrency.rate;
-    const result = inEuro * toCurrency.rate;
+    const inEuro = value / from.rate;
+    const result = inEuro * to.rate;
     return result.toFixed(2);
   };
 
-  const swapCurrencies = () => {
-    handlePress();
+  const handleSwap = () => {
     const temp = fromCurrency;
     setFromCurrency(toCurrency);
     setToCurrency(temp);
   };
 
-  const CurrencyPicker = ({ 
-    visible, 
-    onSelect, 
-    onClose, 
-    selected 
-  }: { 
-    visible: boolean; 
-    onSelect: (currency: typeof currencies[0]) => void; 
+  const toAmount = convert(fromAmount, fromCurrency, toCurrency);
+
+  const CurrencyInput = ({
+    currency,
+    amount,
+    onAmountChange,
+    onCurrencyPress,
+    editable = true,
+  }: {
+    currency: Currency;
+    amount: string;
+    onAmountChange?: (text: string) => void;
+    onCurrencyPress: () => void;
+    editable?: boolean;
+  }) => (
+    <View style={styles.inputContainer}>
+      <Pressable
+        onPress={onCurrencyPress}
+        style={[styles.currencySelector, { borderColor: accentColor }]}
+      >
+        <Text style={styles.currencySymbol}>{currency.symbol}</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.currencyCode, { color: textColor }]}>
+            {currency.code}
+          </Text>
+          <Text style={styles.currencyName}>{currency.name}</Text>
+        </View>
+        <Ionicons name="chevron-down" size={iconSizes.md} color={accentColor} />
+      </Pressable>
+
+      <TextInput
+        style={[
+          styles.amountInput,
+          { borderColor: accentColor, color: textColor },
+          !editable && styles.amountInputDisabled,
+        ]}
+        value={amount}
+        onChangeText={onAmountChange}
+        keyboardType="numeric"
+        placeholder="0.00"
+        editable={editable}
+      />
+    </View>
+  );
+
+  const CurrencyPicker = ({
+    visible,
+    onSelect,
+    onClose,
+    selected,
+  }: {
+    visible: boolean;
+    onSelect: (currency: Currency) => void;
     onClose: () => void;
-    selected: typeof currencies[0];
+    selected: Currency;
   }) => {
     if (!visible) return null;
 
     return (
       <View style={styles.pickerOverlay}>
-        <View style={styles.pickerContainer}>
+        <View style={[styles.pickerContainer, { backgroundColor: 'white' }]}>
           <View style={styles.pickerHeader}>
-            <Text style={styles.pickerTitle}>Seleziona Valuta</Text>
+            <Text style={[styles.pickerTitle, { color: textColor }]}>
+              Seleziona Valuta
+            </Text>
             <Pressable onPress={onClose}>
-              <AntDesign name="close" size={24} color="#666" />
+              <Ionicons name="close" size={iconSizes.lg} color={textColor} />
             </Pressable>
           </View>
           <ScrollView>
-            {currencies.map((currency) => (
+            {currencies.map(currency => (
               <Pressable
                 key={currency.code}
                 onPress={() => {
-                  handlePress();
                   onSelect(currency);
                   onClose();
                 }}
                 style={[
                   styles.currencyItem,
-                  currency.code === selected.code && styles.selectedCurrency
+                  currency.code === selected.code && {
+                    backgroundColor: accentColor + '20',
+                  },
                 ]}
               >
-                <View>
-                  <Text style={styles.currencyCode}>{currency.code}</Text>
-                  <Text style={styles.currencyName}>{currency.name}</Text>
+                <View style={styles.currencyItemLeft}>
+                  <Text style={styles.currencyItemSymbol}>{currency.symbol}</Text>
+                  <View>
+                    <Text style={[styles.currencyItemCode, { color: textColor }]}>
+                      {currency.code}
+                    </Text>
+                    <Text style={styles.currencyItemName}>{currency.name}</Text>
+                  </View>
                 </View>
-                <Text style={styles.currencySymbol}>{currency.symbol}</Text>
+                {currency.code === selected.code && (
+                  <Ionicons name="checkmark" size={iconSizes.lg} color={accentColor} />
+                )}
               </Pressable>
             ))}
           </ScrollView>
@@ -96,93 +165,56 @@ export default function CurrencyConverter({ visible, onClose }: CurrencyConverte
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.overlay}>
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: 'white' }]}>
           {/* Header */}
           <View style={styles.header}>
-            <Pressable onPress={() => { handlePress(); onClose(); }} style={styles.closeButton}>
-              <AntDesign name="close" size={24} color="#007aff" />
+            <Pressable onPress={onClose}>
+              <Ionicons name="close" size={iconSizes.lg} color={accentColor} />
             </Pressable>
-            <Text style={styles.title}>Convertitore Valute</Text>
-            <View style={{ width: 24 }} />
-          </View>
-
-          {/* Amount Input */}
-          <View style={styles.section}>
-            <Text style={styles.label}>Importo</Text>
-            <TextInput
-              style={styles.amountInput}
-              value={amount}
-              onChangeText={setAmount}
-              keyboardType="numeric"
-              placeholder="0.00"
-            />
+            <Text style={[styles.title, { color: textColor }]}>
+              Convertitore Valute
+            </Text>
+            <View style={{ width: iconSizes.lg }} />
           </View>
 
           {/* From Currency */}
           <View style={styles.section}>
             <Text style={styles.label}>Da</Text>
-            <Pressable
-              onPress={() => { handlePress(); setShowFromPicker(true); }}
-              style={styles.currencySelector}
-            >
-              <View style={styles.currencyInfo}>
-                <Text style={styles.currencySymbolLarge}>{fromCurrency.symbol}</Text>
-                <View>
-                  <Text style={styles.currencyCodeLarge}>{fromCurrency.code}</Text>
-                  <Text style={styles.currencyNameSmall}>{fromCurrency.name}</Text>
-                </View>
-              </View>
-              <AntDesign name="down" size={20} color="#666" />
-            </Pressable>
+            <CurrencyInput
+              currency={fromCurrency}
+              amount={fromAmount}
+              onAmountChange={setFromAmount}
+              onCurrencyPress={() => setShowFromPicker(true)}
+            />
           </View>
 
           {/* Swap Button */}
           <View style={styles.swapContainer}>
-            <Pressable onPress={swapCurrencies} style={styles.swapButton}>
-              <AntDesign name="swap" size={24} color="#007aff" />
+            <Pressable
+              onPress={handleSwap}
+              style={[styles.swapButton, { backgroundColor: accentColor }]}
+            >
+              <Ionicons name="swap-vertical" size={iconSizes.lg} color="white" />
             </Pressable>
           </View>
 
           {/* To Currency */}
           <View style={styles.section}>
             <Text style={styles.label}>A</Text>
-            <Pressable
-              onPress={() => { handlePress(); setShowToPicker(true); }}
-              style={styles.currencySelector}
-            >
-              <View style={styles.currencyInfo}>
-                <Text style={styles.currencySymbolLarge}>{toCurrency.symbol}</Text>
-                <View>
-                  <Text style={styles.currencyCodeLarge}>{toCurrency.code}</Text>
-                  <Text style={styles.currencyNameSmall}>{toCurrency.name}</Text>
-                </View>
-              </View>
-              <AntDesign name="down" size={20} color="#666" />
-            </Pressable>
+            <CurrencyInput
+              currency={toCurrency}
+              amount={toAmount}
+              onCurrencyPress={() => setShowToPicker(true)}
+              editable={false}
+            />
           </View>
 
-          {/* Result */}
-          <View style={styles.resultContainer}>
-            <Text style={styles.resultLabel}>Risultato</Text>
-            <Text style={styles.resultValue}>
-              {toCurrency.symbol}{convert()}
+          {/* Exchange Rate Info */}
+          <View style={[styles.rateInfo, { backgroundColor: accentColor + '15' }]}>
+            <Text style={styles.rateText}>
+              1 {fromCurrency.code} = {(toCurrency.rate / fromCurrency.rate).toFixed(4)}{' '}
+              {toCurrency.code}
             </Text>
-            <Text style={styles.rateInfo}>
-              1 {fromCurrency.code} = {(toCurrency.rate / fromCurrency.rate).toFixed(4)} {toCurrency.code}
-            </Text>
-          </View>
-
-          {/* Quick Amounts */}
-          <View style={styles.quickAmounts}>
-            {['10', '50', '100', '500', '1000'].map((value) => (
-              <Pressable
-                key={value}
-                onPress={() => { handlePress(); setAmount(value); }}
-                style={styles.quickButton}
-              >
-                <Text style={styles.quickButtonText}>{value}</Text>
-              </Pressable>
-            ))}
           </View>
 
           {/* Currency Pickers */}
@@ -211,122 +243,88 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   container: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    height: '80%',
-    paddingTop: 20,
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
+    height: '65%',
+    paddingTop: spacing.lg,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 15,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
-  closeButton: {
-    padding: 5,
-  },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...typography.h4,
   },
   section: {
-    paddingHorizontal: 20,
-    marginTop: 25,
+    paddingHorizontal: spacing.lg,
+    marginTop: spacing.lg,
   },
   label: {
-    fontSize: 14,
+    ...typography.caption,
     color: '#666',
-    marginBottom: 10,
+    marginBottom: spacing.sm,
   },
-  amountInput: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    paddingVertical: 15,
-    fontSize: 24,
-    fontWeight: '600',
+  inputContainer: {
+    gap: spacing.sm,
   },
   currencySelector: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    padding: 15,
+    borderWidth: 1.5,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    backgroundColor: '#f9f9f9',
+    gap: spacing.md,
+  },
+  currencySymbol: {
+    fontSize: responsive(28),
+    fontWeight: '600',
+  },
+  currencyCode: {
+    ...typography.bodyBold,
+  },
+  currencyName: {
+    ...typography.small,
+    color: '#666',
+  },
+  amountInput: {
+    borderWidth: 1.5,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    ...typography.h3,
+    textAlign: 'center',
     backgroundColor: '#f9f9f9',
   },
-  currencyInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 15,
-  },
-  currencySymbolLarge: {
-    fontSize: 32,
-    fontWeight: '600',
-  },
-  currencyCodeLarge: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-  },
-  currencyNameSmall: {
-    fontSize: 12,
-    color: '#666',
+  amountInputDisabled: {
+    backgroundColor: '#f5f5f5',
   },
   swapContainer: {
     alignItems: 'center',
-    marginVertical: 15,
+    marginVertical: spacing.md,
   },
   swapButton: {
-    backgroundColor: '#f0f0f0',
-    padding: 12,
-    borderRadius: 25,
-  },
-  resultContainer: {
-    marginHorizontal: 20,
-    marginTop: 25,
-    padding: 20,
-    backgroundColor: '#e3f2fd',
-    borderRadius: 15,
+    width: responsive(50),
+    height: responsive(50),
+    borderRadius: responsive(25),
+    justifyContent: 'center',
     alignItems: 'center',
-  },
-  resultLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
-  },
-  resultValue: {
-    fontSize: 36,
-    fontWeight: '700',
-    color: '#007aff',
-    marginBottom: 8,
+    ...shadows.md,
   },
   rateInfo: {
-    fontSize: 12,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+  },
+  rateText: {
+    ...typography.caption,
     color: '#666',
-  },
-  quickAmounts: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingHorizontal: 20,
-    marginTop: 20,
-  },
-  quickButton: {
-    backgroundColor: '#f5f5f5',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  quickButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#007aff',
   },
   pickerOverlay: {
     position: 'absolute',
@@ -338,47 +336,43 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   pickerContainer: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '60%',
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
+    maxHeight: '50%',
   },
   pickerHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
   pickerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...typography.h4,
   },
   currencyItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 15,
+    padding: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
-  selectedCurrency: {
-    backgroundColor: '#e3f2fd',
+  currencyItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
   },
-  currencyCode: {
-    fontSize: 16,
+  currencyItemSymbol: {
+    fontSize: responsive(24),
     fontWeight: '600',
-    color: '#333',
   },
-  currencyName: {
-    fontSize: 12,
+  currencyItemCode: {
+    ...typography.bodyBold,
+  },
+  currencyItemName: {
+    ...typography.small,
     color: '#666',
-    marginTop: 2,
-  },
-  currencySymbol: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#007aff',
   },
 });

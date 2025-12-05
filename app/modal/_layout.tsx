@@ -1,61 +1,98 @@
 // app/modal/_layout.tsx
+import { borderRadius, iconSizes, spacing, typography } from '@/constants/design-system';
+import { useGradient } from '@/hooks/useGradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Slot, useRouter, useSegments } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 
 export default function ModalLayout() {
   const router = useRouter();
   const segments = useSegments();
-  const currentRoute = segments[segments.length - 1]; // 'in' o 'second'
+  const currentRoute = segments[segments.length - 1];
+  const { accentColor, textColor } = useGradient();
+  
+  const slideAnim = useRef(new Animated.Value(0)).current;
 
-  const Header = () => (
-    <View style={styles.headerContainer}>
-      <View style={styles.row}>
-        {/* Back button – chiude il modal correttamente */}
-        <Pressable onPress={() => router.dismiss()} style={styles.backButton}>
-          <Ionicons name="chevron-down" size={28} color="#007aff" />
-        </Pressable>
+  useEffect(() => {
+    Animated.spring(slideAnim, {
+      toValue: currentRoute === 'in' ? 0 : 1,
+      useNativeDriver: true,
+      tension: 50,
+      friction: 8,
+    }).start();
+  }, [currentRoute]);
 
-        {/* I tuoi tab di paginazione */}
-        <View style={styles.tabsContainer}>
-          <Pressable
-            onPress={() => router.replace('/modal/in')}
-            style={[styles.tab, currentRoute === ('in') && styles.activeTab]}
-          >
-            <Ionicons
-              name={currentRoute === 'in' ? "document-text" : "document-text-outline"}
-              size={24}
-              color={currentRoute === 'in' ? '#007aff' : '#8e8e93'}
-            />
-            <Text style={[styles.tabText, currentRoute === ('in') && styles.activeText]}>
-              In
-            </Text>
-          </Pressable>
-
-          <Pressable
-            onPress={() => router.replace('/modal/out')}
-            style={[styles.tab, currentRoute === 'out' && styles.activeTab]}
-          >
-            <Ionicons
-              name={currentRoute === 'out' ? "list" : "list-outline"}
-              size={24}
-              color={currentRoute === 'out' ? '#007aff' : '#8e8e93'}
-            />
-            <Text style={[styles.tabText, currentRoute === 'out' && styles.activeText]}>
-              Out
-            </Text>
-          </Pressable>
-        </View>
-      </View>
-    </View>
-  );
+  const indicatorTranslate = slideAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 150], // Metà larghezza dello schermo approssimata
+  });
 
   return (
     <View style={styles.container}>
-      {/* HEADER SEMPRE VISIBILE */}
-      <Header />
+      {/* Header */}
+      <View style={styles.headerContainer}>
+        <View style={styles.row}>
+          {/* Back button */}
+          <Pressable onPress={() => router.dismiss()} style={styles.backButton}>
+            <Ionicons name="chevron-down" size={iconSizes.xl} color={accentColor} />
+          </Pressable>
 
-      {/* Contenuto della pagina corrente (in.tsx o second.tsx) */}
+          {/* Tabs */}
+          <View style={styles.tabsContainer}>
+            <Pressable
+              onPress={() => router.replace('/modal/in')}
+              style={styles.tab}
+            >
+              <Ionicons
+                name={currentRoute === 'in' ? 'arrow-down-circle' : 'arrow-down-circle-outline'}
+                size={iconSizes.lg}
+                color={currentRoute === 'in' ? accentColor : '#8e8e93'}
+              />
+              <Text
+                style={[
+                  styles.tabText,
+                  currentRoute === 'in' && { color: accentColor, fontWeight: '600' },
+                ]}
+              >
+                In
+              </Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => router.replace('/modal/out')}
+              style={styles.tab}
+            >
+              <Ionicons
+                name={currentRoute === 'out' ? 'arrow-up-circle' : 'arrow-up-circle-outline'}
+                size={iconSizes.lg}
+                color={currentRoute === 'out' ? accentColor : '#8e8e93'}
+              />
+              <Text
+                style={[
+                  styles.tabText,
+                  currentRoute === 'out' && { color: accentColor, fontWeight: '600' },
+                ]}
+              >
+                Out
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+
+        {/* Animated Indicator */}
+        <Animated.View
+          style={[
+            styles.activeIndicator,
+            {
+              backgroundColor: accentColor,
+              transform: [{ translateX: indicatorTranslate }],
+            },
+          ]}
+        />
+      </View>
+
+      {/* Content */}
       <Slot />
     </View>
   );
@@ -70,16 +107,17 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
-    paddingTop: 35,     // safe area
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingTop: 35,
+    paddingHorizontal: spacing.md,
+    paddingBottom: 0,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   backButton: {
-    marginRight: 12,
+    marginRight: spacing.md,
+    padding: spacing.xs,
   },
   tabsContainer: {
     flexDirection: 'row',
@@ -88,20 +126,18 @@ const styles = StyleSheet.create({
   tab: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 3,
-    borderBottomColor: 'transparent',
-  },
-  activeTab: {
-    borderBottomColor: '#007aff',
+    paddingVertical: spacing.md,
+    gap: spacing.xs,
   },
   tabText: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginTop: 4,
+    ...typography.caption,
     color: '#8e8e93',
   },
-  activeText: {
-    color: '#007aff',
+  activeIndicator: {
+    height: 3,
+    width: '50%',
+    borderTopLeftRadius: borderRadius.sm,
+    borderTopRightRadius: borderRadius.sm,
+    marginTop: spacing.xs,
   },
 });
