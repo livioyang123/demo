@@ -68,12 +68,10 @@ export default function OutSection() {
 
   return (
     <View style={styles.container}>
-      {/* Handle */}
       <View style={styles.handleContainer}>
         <View style={[styles.handle, { backgroundColor: accentColor }]} />
       </View>
 
-      {/* Content */}
       <View style={styles.content}>
         {rows.map((row, rowIndex) => (
           <View key={rowIndex} style={styles.row}>
@@ -96,7 +94,7 @@ export default function OutSection() {
                     transform: [{ scale: selectedIcon === iconName ? scaleAnim : 1 }],
                   }}
                 >
-                  <Image source={icons[iconName]} style={styles.icon} />
+                  <Image source={icons[iconName]} style={[styles.icon, { tintColor: accentColor }]} />
                 </Animated.View>
                 <Text style={[styles.iconLabel, { color: textColor }]}>{iconName}</Text>
               </Pressable>

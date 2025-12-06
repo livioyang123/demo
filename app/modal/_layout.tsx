@@ -9,10 +9,21 @@ import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 export default function ModalLayout() {
   const router = useRouter();
   const segments = useSegments();
-  const currentRoute = segments[segments.length - 1];
+  const currentRoute = segments[segments.length - 1] || 'in';
   const { accentColor, textColor } = useGradient();
   
   const slideAnim = useRef(new Animated.Value(0)).current;
+  const modalSlideAnim = useRef(new Animated.Value(1000)).current;
+
+  useEffect(() => {
+    // Animazione entrata modale
+    Animated.spring(modalSlideAnim, {
+      toValue: 0,
+      useNativeDriver: true,
+      tension: 50,
+      friction: 8,
+    }).start();
+  }, []);
 
   useEffect(() => {
     Animated.spring(slideAnim, {
@@ -23,22 +34,34 @@ export default function ModalLayout() {
     }).start();
   }, [currentRoute]);
 
+  const handleClose = () => {
+    Animated.timing(modalSlideAnim, {
+      toValue: 1000,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      router.dismiss();
+    });
+  };
+
   const indicatorTranslate = slideAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 150], // Metà larghezza dello schermo approssimata
+    outputRange: [0, 150],
   });
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
+    <Animated.View 
+      style={[
+        styles.container,
+        { transform: [{ translateY: modalSlideAnim }] }
+      ]}
+    >
       <View style={styles.headerContainer}>
         <View style={styles.row}>
-          {/* Back button */}
-          <Pressable onPress={() => router.dismiss()} style={styles.backButton}>
+          <Pressable onPress={handleClose} style={styles.backButton}>
             <Ionicons name="chevron-down" size={iconSizes.xl} color={accentColor} />
           </Pressable>
 
-          {/* Tabs */}
           <View style={styles.tabsContainer}>
             <Pressable
               onPress={() => router.replace('/modal/in')}
@@ -80,7 +103,6 @@ export default function ModalLayout() {
           </View>
         </View>
 
-        {/* Animated Indicator */}
         <Animated.View
           style={[
             styles.activeIndicator,
@@ -92,9 +114,8 @@ export default function ModalLayout() {
         />
       </View>
 
-      {/* Content */}
       <Slot />
-    </View>
+    </Animated.View>
   );
 }
 

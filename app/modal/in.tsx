@@ -60,7 +60,6 @@ export default function InSection() {
     setCalculatorVisible(false);
     setSelectedIcon(null);
     router.back();
-    
   };
 
   const rows = [];
@@ -70,12 +69,10 @@ export default function InSection() {
 
   return (
     <View style={styles.container}>
-      {/* Handle */}
       <View style={styles.handleContainer}>
         <View style={[styles.handle, { backgroundColor: accentColor }]} />
       </View>
 
-      {/* Content */}
       <View style={styles.content}>
         {rows.map((row, rowIndex) => (
           <View key={rowIndex} style={styles.row}>
@@ -98,7 +95,7 @@ export default function InSection() {
                     transform: [{ scale: selectedIcon === iconName ? scaleAnim : 1 }],
                   }}
                 >
-                  <Image source={icons[iconName]} style={styles.icon} />
+                  <Image source={icons[iconName]} style={[styles.icon, { tintColor: accentColor }]} />
                 </Animated.View>
                 <Text style={[styles.iconLabel, { color: textColor }]}>{iconName}</Text>
               </Pressable>
@@ -164,6 +161,5 @@ const styles = StyleSheet.create({
   iconLabel: {
     ...typography.small,
     textAlign: 'center',
-    
   },
 });

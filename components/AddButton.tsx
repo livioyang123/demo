@@ -1,54 +1,96 @@
 // components/AddButton.tsx
 import { feedback } from '@/app/utils/feedback';
+import { add_in, add_out } from '@/app/utils/registry';
+import TransactionConfirmModal from '@/components/TransactionConfirmModal';
 import { responsive, shadows, spacing } from '@/constants/design-system';
 import { useGradient } from '@/hooks/useGradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet } from 'react-native';
-
 
 export default function AddButton() {
   const { accentColor } = useGradient();
-  const router = useRouter();
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const [isFocused, setIsFocused] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+
+  const handlePressIn = () => {
+    setIsFocused(true);
+    feedback.triggerFeedback('light');
+    Animated.spring(scaleAnim, {
+      toValue: 0.85,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 10,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    setIsFocused(false);
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 10,
+    }).start();
+  };
 
   const handlePress = () => {
-    feedback.triggerFeedback('light');
-    
-    Animated.sequence([
-      Animated.spring(scaleAnim, {
-        toValue: 0.9,
-        useNativeDriver: true,
-        tension: 300,
-        friction: 10,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        useNativeDriver: true,
-        tension: 300,
-        friction: 10,
-      }),
-    ]).start();
+    setShowModal(true);
+  };
 
-    router.push('/modal/in' as any);
+  const handleConfirm = async (
+    amount: number,
+    type: string,
+    description: string,
+    isIn: boolean
+  ) => {
+    const transaction = {
+      type,
+      description,
+      date: new Date(),
+      amount,
+    };
+
+    if (isIn) {
+      await add_in(transaction);
+    } else {
+      await add_out(transaction);
+    }
+
+    feedback.triggerFeedback('success');
+    setShowModal(false);
   };
 
   return (
-    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-      <Pressable
-        onPress={handlePress}
-        style={({ pressed }) => [
-          styles.addButton,
-          {
-            backgroundColor: accentColor,
-            opacity: pressed ? 0.8 : 1,
-          },
-        ]}
-      >
-        <Ionicons name="add" size={28} color="white" />
-      </Pressable>
-    </Animated.View>
+    <>
+      <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+        <Pressable
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          onPress={handlePress}
+          style={[
+            styles.addButton,
+            {
+              backgroundColor: isFocused ? 'white' : accentColor,
+              borderColor: isFocused ? accentColor : 'white',
+            },
+          ]}
+        >
+          <Ionicons 
+            name="add" 
+            size={28} 
+            color={isFocused ? accentColor : 'white'} 
+          />
+        </Pressable>
+      </Animated.View>
+
+      <TransactionConfirmModal
+        visible={showModal}
+        onClose={() => setShowModal(false)}
+        onConfirm={handleConfirm}
+      />
+    </>
   );
 }
 
@@ -60,11 +102,10 @@ const styles = StyleSheet.create({
     width: responsive(60),
     height: responsive(60),
     borderRadius: responsive(30),
-    borderWidth: 1,
+    borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
     ...shadows.lg,
     zIndex: 1000,
-    borderColor:"white",
   },
 });

@@ -4,6 +4,7 @@ import { calculateTotalForInMonth_in, calculateTotalForInMonth_out } from '@/app
 import AddButton from '@/components/AddButton';
 import DatePickerModal from '@/components/DatePickerModal';
 import Navbar from '@/components/Navbar';
+import ReceiptScanner from '@/components/ReceiptScanner';
 import TransactionsList from '@/components/TransactionalList';
 import UnifiedCard from '@/components/ui/UnifiedCard';
 import VoiceInputButton from '@/components/voiceInputButton';
@@ -14,11 +15,10 @@ import { AntDesign } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { DeviceEventEmitter, Pressable, StyleSheet, Text, View } from 'react-native';
+import { DeviceEventEmitter, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-// Colori più morbidi per in/out
-const INCOME_COLOR = '#52B788'; // Verde più morbido
-const EXPENSE_COLOR = '#EF476F'; // Rosso più morbido
+const INCOME_COLOR = '#52B788';
+const EXPENSE_COLOR = '#EF476F';
 
 export default function HomeScreen() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
@@ -140,7 +140,6 @@ export default function HomeScreen() {
                 <Text style={[styles.amountDecimal, { color: EXPENSE_COLOR }]}>
                   .{formatNumber(totalOut, 'float')}
                 </Text>
-                
               </View>
             </UnifiedCard>
           </View>
@@ -148,18 +147,24 @@ export default function HomeScreen() {
 
         <UnifiedCard style={styles.navbar} elevation="lg">
           <Navbar />
-  
         </UnifiedCard>
       </View>
 
       <UnifiedCard style={styles.body} elevation="lg" padding="none">
-        <TransactionsList
-          selectedMonth={selectedMonth}
-          selectedYear={selectedYear}
-          onMonthChange={handleMonthChange}
-        />
+        <ScrollView
+          style={styles.scrollContainer}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <TransactionsList
+            selectedMonth={selectedMonth}
+            selectedYear={selectedYear}
+            onMonthChange={handleMonthChange}
+          />
+        </ScrollView>
       </UnifiedCard>
 
+      <ReceiptScanner />
       <AddButton />
       <VoiceInputButton />
 
@@ -271,5 +276,12 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     bottom: responsive(20),
     borderRadius: borderRadius.xl,
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    minHeight: responsive(400),
   },
 });

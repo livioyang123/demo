@@ -1,4 +1,5 @@
-// src/components/CalculatorModal.tsx
+// components/CalculatorModal.tsx
+import { useGradient } from '@/hooks/useGradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -21,6 +22,8 @@ export default function CalculatorModal({ visible, onClose, onDone }: Calculator
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+  const { accentColor } = useGradient();
 
   const handleNumberPress = (num: string) => {
     if (displayValue === '0.00') {
@@ -72,7 +75,6 @@ export default function CalculatorModal({ visible, onClose, onDone }: Calculator
 
     onDone(finalAmount, description, selectedDate, operation || undefined);
     
-    // Reset
     setDisplayValue('0.00');
     setDescription('');
     setOperation(null);
@@ -107,16 +109,14 @@ export default function CalculatorModal({ visible, onClose, onDone }: Calculator
       >
         <Pressable style={styles.modalOverlay} onPress={onClose}>
           <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-            {/* Display Value - 15% */}
             <View style={styles.displayContainer}>
-              <Text style={styles.displayValue}>{getDisplayText()}</Text>
+              <Text style={[styles.displayValue, { color: accentColor }]}>{getDisplayText()}</Text>
             </View>
 
-            {/* Input Description - 15% */}
             <View style={styles.descriptionContainer}>
               <Text style={styles.descriptionLabel}>Description:</Text>
               <TextInput
-                style={styles.descriptionInput}
+                style={[styles.descriptionInput, { color: accentColor }]}
                 value={description}
                 onChangeText={setDescription}
                 placeholder="Add note..."
@@ -124,9 +124,7 @@ export default function CalculatorModal({ visible, onClose, onDone }: Calculator
               />
             </View>
 
-            {/* Main Content - 70% */}
             <View style={styles.mainContent}>
-              {/* Numeric Keypad - 75% width */}
               <View style={styles.keypadContainer}>
                 {numbers.map((num, index) => (
                   <Pressable
@@ -140,41 +138,48 @@ export default function CalculatorModal({ visible, onClose, onDone }: Calculator
                       }
                     }}
                   >
-                    <Text style={styles.numButtonText}>{num}</Text>
+                    <Text style={[styles.numButtonText, { color: accentColor }]}>{num}</Text>
                   </Pressable>
                 ))}
               </View>
 
-              {/* Right Column - 25% width */}
               <View style={styles.rightColumn}>
                 <Pressable
-                  style={styles.iconButton}
+                  style={[styles.iconButton, { backgroundColor: accentColor + '15' }]}
                   onPress={() => setDatePickerVisible(true)}
                 >
-                  <Ionicons name="calendar-outline" size={24} color="#070707" />
-                  <Text style={styles.dateText}>
+                  <Ionicons name="calendar-outline" size={24} color={accentColor} />
+                  <Text style={[styles.dateText, { color: accentColor }]}>
                     {selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   </Text>
                 </Pressable>
 
                 <Pressable
-                  style={[styles.iconButton, operation === 'add' && styles.activeOperation]}
+                  style={[
+                    styles.iconButton,
+                    { backgroundColor: accentColor + '15' },
+                    operation === 'add' && { backgroundColor: accentColor }
+                  ]}
                   onPress={() => handleOperation('add')}
                 >
-                  <Text style={styles.operationText}>+</Text>
+                  <Text style={[styles.operationText, { color: operation === 'add' ? '#fff' : accentColor }]}>+</Text>
                 </Pressable>
 
                 <Pressable
-                  style={[styles.iconButton, operation === 'subtract' && styles.activeOperation]}
+                  style={[
+                    styles.iconButton,
+                    { backgroundColor: accentColor + '15' },
+                    operation === 'subtract' && { backgroundColor: accentColor }
+                  ]}
                   onPress={() => handleOperation('subtract')}
                 >
-                  <Text style={styles.operationText}>−</Text>
+                  <Text style={[styles.operationText, { color: operation === 'subtract' ? '#fff' : accentColor }]}>−</Text>
                 </Pressable>
 
                 <Pressable
                   style={[
                     styles.doneButton,
-                    operation && !showResult && styles.equalsButton
+                    { backgroundColor: operation && !showResult ? accentColor : '#34C759' }
                   ]}
                   onPress={() => {
                     if (operation && !showResult) {
@@ -215,13 +220,13 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: '#fff',
-    height: '40%',
+    height: '55%',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingTop: 10,
   },
   displayContainer: {
-    height: '15%',
+    height: '12%',
     justifyContent: 'center',
     alignItems: 'flex-end',
     paddingHorizontal: 20,
@@ -229,12 +234,11 @@ const styles = StyleSheet.create({
     borderBottomColor: '#e0e0e0',
   },
   displayValue: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
-    color: '#070707',
   },
   descriptionContainer: {
-    height: '15%',
+    height: '12%',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
@@ -252,10 +256,9 @@ const styles = StyleSheet.create({
   descriptionInput: {
     flex: 1,
     fontSize: 14,
-    color: '#070707',
   },
   mainContent: {
-    height: '70%',
+    height: '76%',
     flexDirection: 'row',
     paddingHorizontal: 10,
     paddingTop: 10,
@@ -275,7 +278,6 @@ const styles = StyleSheet.create({
   },
   numButtonText: {
     fontSize: 24,
-    color: '#070707',
     fontWeight: '500',
   },
   rightColumn: {
@@ -287,33 +289,23 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
     borderRadius: 10,
     marginVertical: 3,
   },
-  activeOperation: {
-    backgroundColor: '#007AFF',
-  },
   dateText: {
     fontSize: 10,
-    color: '#070707',
     marginTop: 2,
   },
   operationText: {
     fontSize: 28,
-    color: '#070707',
     fontWeight: '600',
   },
   doneButton: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#34C759',
     borderRadius: 10,
     marginVertical: 3,
-  },
-  equalsButton: {
-    backgroundColor: '#007AFF',
   },
   doneButtonText: {
     fontSize: 28,

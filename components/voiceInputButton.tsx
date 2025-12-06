@@ -1,6 +1,7 @@
 // components/voiceInputButton.tsx
 import { feedback } from '@/app/utils/feedback';
 import { add_in, add_out } from '@/app/utils/registry';
+import TransactionConfirmModal from '@/components/TransactionConfirmModal';
 import { borderRadius, iconSizes, responsive, shadows, spacing, typography } from '@/constants/design-system';
 import { useGradient } from '@/hooks/useGradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,10 +11,8 @@ import {
   Animated,
   Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View
 } from 'react-native';
 
@@ -26,19 +25,14 @@ interface ParsedData {
 
 export default function VoiceInputButton() {
   const [isRecording, setIsRecording] = useState(false);
-  const [showModal, setShowModal] = useState(false);
   const [showVoiceModal, setShowVoiceModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [parsedData, setParsedData] = useState<ParsedData | null>(null);
-  const [editAmount, setEditAmount] = useState('');
-  const [editType, setEditType] = useState('');
-  const [editDescription, setEditDescription] = useState('');
-  const [recognizedText, setRecognizedText] = useState('');
   const [currentText, setCurrentText] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
   
-  const [modalAnimation] = useState(new Animated.Value(0));
   const [voiceModalAnimation] = useState(new Animated.Value(0));
   
-  // Animazioni per le onde sonore
   const wave1 = useRef(new Animated.Value(0.3)).current;
   const wave2 = useRef(new Animated.Value(0.5)).current;
   const wave3 = useRef(new Animated.Value(0.7)).current;
@@ -47,6 +41,7 @@ export default function VoiceInputButton() {
   
   const micScale = useRef(new Animated.Value(1)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const buttonScale = useRef(new Animated.Value(1)).current;
 
   const { accentColor, textColor } = useGradient();
 
@@ -59,9 +54,8 @@ export default function VoiceInputButton() {
 
   const startWaveAnimations = () => {
     const waves = [wave1, wave2, wave3, wave4, wave5];
-    const delays = [0, 100, 200, 300, 400];
     
-    waves.forEach((wave, index) => {
+    waves.forEach((wave) => {
       Animated.loop(
         Animated.sequence([
           Animated.timing(wave, {
@@ -114,6 +108,26 @@ export default function VoiceInputButton() {
     ).start();
   };
 
+  const handlePressIn = () => {
+    setIsFocused(true);
+    Animated.spring(buttonScale, {
+      toValue: 0.85,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 10,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    setIsFocused(false);
+    Animated.spring(buttonScale, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 10,
+    }).start();
+  };
+
   const handleVoiceInput = async () => {
     feedback.triggerFeedback('medium');
     setIsRecording(true);
@@ -128,7 +142,6 @@ export default function VoiceInputButton() {
     }).start();
 
     try {
-      // Simula riconoscimento vocale progressivo
       const mockPhrases = [
         "ho",
         "ho speso",
@@ -147,16 +160,9 @@ export default function VoiceInputButton() {
       await new Promise(resolve => setTimeout(resolve, 500));
       
       const finalText = mockPhrases[mockPhrases.length - 1];
-      setRecognizedText(finalText);
+      const parsed = parseVoiceText(finalText);
       
-      const parsedData = parseVoiceText(finalText);
-      
-      setParsedData(parsedData);
-      setEditAmount(parsedData.amount.toString());
-      setEditType(parsedData.type);
-      setEditDescription(parsedData.description);
-      
-      // Chiudi modal vocale e apri modal conferma
+      setParsedData(parsed);
       hideVoiceModalAndShowConfirm();
       
     } catch (error) {
@@ -219,29 +225,7 @@ export default function VoiceInputButton() {
       useNativeDriver: true,
     }).start(() => {
       setShowVoiceModal(false);
-      showModalWithAnimation();
-    });
-  };
-
-  const showModalWithAnimation = () => {
-    setShowModal(true);
-    Animated.spring(modalAnimation, {
-      toValue: 1,
-      useNativeDriver: true,
-      tension: 50,
-      friction: 8,
-    }).start();
-  };
-
-  const hideModalWithAnimation = () => {
-    Animated.timing(modalAnimation, {
-      toValue: 0,
-      duration: 250,
-      useNativeDriver: true,
-    }).start(() => {
-      setShowModal(false);
-      setParsedData(null);
-      setRecognizedText('');
+      setShowConfirmModal(true);
     });
   };
 
@@ -257,32 +241,31 @@ export default function VoiceInputButton() {
     });
   };
 
-  const handleConfirm = async () => {
-    if (!parsedData) return;
-
+  const handleConfirm = async (
+    amount: number,
+    type: string,
+    description: string,
+    isIn: boolean
+  ) => {
     const transaction = {
-      type: editType,
-      description: editDescription,
+      type,
+      description,
       date: new Date(),
-      amount: parseFloat(editAmount),
+      amount,
     };
 
-    if (parsedData.isIn) {
+    if (isIn) {
       await add_in(transaction);
     } else {
       await add_out(transaction);
     }
 
     feedback.triggerFeedback('success');
-    hideModalWithAnimation();
+    setShowConfirmModal(false);
+    setParsedData(null);
   };
 
   const voiceModalTranslateY = voiceModalAnimation.interpolate({
-    inputRange: [0, 1],
-    outputRange: [600, 0],
-  });
-
-  const modalTranslateY = modalAnimation.interpolate({
     inputRange: [0, 1],
     outputRange: [600, 0],
   });
@@ -301,26 +284,32 @@ export default function VoiceInputButton() {
 
   return (
     <>
-      <Pressable
-        onPress={handleVoiceInput}
-        disabled={isRecording}
-        style={({ pressed }) => [
-          styles.voiceButton,
-          {
-            borderColor: accentColor,
-            opacity: pressed ? 0.7 : 1,
-            transform: [{ scale: pressed ? 0.95 : 1 }],
-          },
-        ]}
-      >
-        {isRecording ? (
-          <ActivityIndicator size="small" color={accentColor} />
-        ) : (
-          <Ionicons name="mic" size={iconSizes.lg} color={accentColor} />
-        )}
-      </Pressable>
+      <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
+        <Pressable
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          onPress={handleVoiceInput}
+          disabled={isRecording}
+          style={[
+            styles.voiceButton,
+            {
+              backgroundColor: isFocused ? 'white' : 'rgba(255, 255, 255, 0.95)',
+              borderColor: isFocused ? accentColor : 'transparent',
+            },
+          ]}
+        >
+          {isRecording ? (
+            <ActivityIndicator size="small" color={accentColor} />
+          ) : (
+            <Ionicons 
+              name="mic" 
+              size={iconSizes.lg} 
+              color={isFocused ? accentColor : accentColor} 
+            />
+          )}
+        </Pressable>
+      </Animated.View>
 
-      {/* Modal Riconoscimento Vocale */}
       <Modal
         visible={showVoiceModal}
         transparent
@@ -341,7 +330,6 @@ export default function VoiceInputButton() {
               </Pressable>
             </View>
 
-            {/* Animazione microfono pulsante */}
             <View style={styles.micContainer}>
               <Animated.View
                 style={[
@@ -366,7 +354,6 @@ export default function VoiceInputButton() {
               </Animated.View>
             </View>
 
-            {/* Onde sonore */}
             <View style={styles.waveContainer}>
               {[wave1, wave2, wave3, wave4, wave5].map((wave, index) => (
                 <Animated.View
@@ -386,7 +373,6 @@ export default function VoiceInputButton() {
               ))}
             </View>
 
-            {/* Testo riconosciuto */}
             <View style={styles.textContainer}>
               <Text style={[styles.recognizedLiveText, { color: textColor }]}>
                 {currentText || 'Inizia a parlare...'}
@@ -403,149 +389,22 @@ export default function VoiceInputButton() {
         </View>
       </Modal>
 
-      {/* Modal Conferma */}
-      <Modal
-        visible={showModal}
-        transparent
-        animationType="none"
-        onRequestClose={hideModalWithAnimation}
-      >
-        <Pressable style={styles.modalOverlay} onPress={hideModalWithAnimation}>
-          <Animated.View
-            style={[
-              styles.modalContent,
-              { transform: [{ translateY: modalTranslateY }] },
-            ]}
-            onStartShouldSetResponder={() => true}
-          >
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: textColor }]}>
-                Conferma Transazione
-              </Text>
-              <Pressable onPress={hideModalWithAnimation}>
-                <Ionicons name="close" size={iconSizes.lg} color={textColor} />
-              </Pressable>
-            </View>
-
-            <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
-              {recognizedText && (
-                <View style={[styles.recognizedBox, { backgroundColor: accentColor + '15' }]}>
-                  <Ionicons name="mic" size={iconSizes.sm} color={accentColor} />
-                  <Text style={styles.recognizedText}>`&quot;`{recognizedText}`&quot;`</Text>
-                </View>
-              )}
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Importo</Text>
-                <TextInput
-                  style={[styles.input, { borderColor: accentColor }]}
-                  value={editAmount}
-                  onChangeText={setEditAmount}
-                  keyboardType="numeric"
-                  placeholder="0.00"
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Categoria</Text>
-                <TextInput
-                  style={[styles.input, { borderColor: accentColor }]}
-                  value={editType}
-                  onChangeText={setEditType}
-                  placeholder="Es. Food, Transport..."
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Descrizione</Text>
-                <TextInput
-                  style={[styles.input, { borderColor: accentColor }]}
-                  value={editDescription}
-                  onChangeText={setEditDescription}
-                  placeholder="Note aggiuntive..."
-                  multiline
-                  numberOfLines={2}
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Tipo</Text>
-                <View style={styles.typeSelector}>
-                  <Pressable
-                    onPress={() =>
-                      setParsedData(prev => (prev ? { ...prev, isIn: false } : null))
-                    }
-                    style={[
-                      styles.typeButton,
-                      !parsedData?.isIn && {
-                        backgroundColor: accentColor,
-                      },
-                    ]}
-                  >
-                    <Ionicons 
-                      name="arrow-up" 
-                      size={iconSizes.md} 
-                      color={!parsedData?.isIn ? 'white' : '#666'} 
-                    />
-                    <Text
-                      style={[
-                        styles.typeButtonText,
-                        !parsedData?.isIn && styles.typeButtonTextActive,
-                      ]}
-                    >
-                      Uscita
-                    </Text>
-                  </Pressable>
-
-                  <Pressable
-                    onPress={() =>
-                      setParsedData(prev => (prev ? { ...prev, isIn: true } : null))
-                    }
-                    style={[
-                      styles.typeButton,
-                      parsedData?.isIn && {
-                        backgroundColor: accentColor,
-                      },
-                    ]}
-                  >
-                    <Ionicons 
-                      name="arrow-down" 
-                      size={iconSizes.md} 
-                      color={parsedData?.isIn ? 'white' : '#666'} 
-                    />
-                    <Text
-                      style={[
-                        styles.typeButtonText,
-                        parsedData?.isIn && styles.typeButtonTextActive,
-                      ]}
-                    >
-                      Entrata
-                    </Text>
-                  </Pressable>
-                </View>
-              </View>
-            </ScrollView>
-
-            <View style={styles.buttonRow}>
-              <Pressable
-                onPress={hideModalWithAnimation}
-                style={[styles.button, styles.cancelButton]}
-              >
-                <Text style={styles.buttonText}>Annulla</Text>
-              </Pressable>
-
-              <Pressable
-                onPress={handleConfirm}
-                style={[styles.button, { backgroundColor: accentColor }]}
-              >
-                <Text style={[styles.buttonText, { color: 'white' }]}>
-                  Conferma
-                </Text>
-              </Pressable>
-            </View>
-          </Animated.View>
-        </Pressable>
-      </Modal>
+      {parsedData && (
+        <TransactionConfirmModal
+          visible={showConfirmModal}
+          onClose={() => {
+            setShowConfirmModal(false);
+            setParsedData(null);
+          }}
+          onConfirm={handleConfirm}
+          initialData={{
+            amount: parsedData.amount.toString(),
+            type: parsedData.type,
+            description: parsedData.description,
+            isIn: parsedData.isIn,
+          }}
+        />
+      )}
     </>
   );
 }
@@ -558,7 +417,6 @@ const styles = StyleSheet.create({
     width: responsive(60),
     height: responsive(60),
     borderRadius: responsive(30),
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
@@ -637,104 +495,5 @@ const styles = StyleSheet.create({
   },
   cancelVoiceText: {
     ...typography.bodyBold,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    height: '70%',
-    backgroundColor: 'white',
-    borderTopLeftRadius: borderRadius.xl,
-    borderTopRightRadius: borderRadius.xl,
-    padding: spacing.lg,
-    ...shadows.lg,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  modalTitle: {
-    ...typography.h4,
-  },
-  form: {
-    flex: 1,
-    marginBottom: spacing.md,
-  },
-  recognizedBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    marginBottom: spacing.md,
-    gap: spacing.sm,
-  },
-  recognizedText: {
-    ...typography.caption,
-    flex: 1,
-    fontStyle: 'italic',
-    color: '#666',
-  },
-  inputGroup: {
-    marginBottom: spacing.md,
-  },
-  label: {
-    ...typography.caption,
-    color: '#666',
-    marginBottom: spacing.xs,
-    fontWeight: '600',
-  },
-  input: {
-    borderWidth: 1.5,
-    borderRadius: borderRadius.sm,
-    padding: spacing.md,
-    ...typography.body,
-    backgroundColor: '#f9f9f9',
-  },
-  typeSelector: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  typeButton: {
-    flex: 1,
-    flexDirection: 'row',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.sm,
-    borderRadius: borderRadius.sm,
-    backgroundColor: '#f5f5f5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-  },
-  typeButtonText: {
-    ...typography.bodyBold,
-    color: '#666',
-  },
-  typeButtonTextActive: {
-    color: 'white',
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  button: {
-    flex: 1,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-    ...shadows.sm,
-  },
-  cancelButton: {
-    backgroundColor: '#f5f5f5',
-  },
-  buttonText: {
-    ...typography.bodyBold,
-    color: '#333',
   },
 });
