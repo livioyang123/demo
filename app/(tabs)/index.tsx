@@ -1,6 +1,7 @@
 // app/(tabs)/index.tsx
 import { feedback } from '@/app/utils/feedback';
 import { calculateTotalForInMonth_in, calculateTotalForInMonth_out } from '@/app/utils/registry';
+import AddButton from '@/components/AddButton';
 import DatePickerModal from '@/components/DatePickerModal';
 import Navbar from '@/components/Navbar';
 import TransactionsList from '@/components/TransactionalList';
@@ -14,6 +15,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { DeviceEventEmitter, Pressable, StyleSheet, Text, View } from 'react-native';
+
+// Colori più morbidi per in/out
+const INCOME_COLOR = '#52B788'; // Verde più morbido
+const EXPENSE_COLOR = '#EF476F'; // Rosso più morbido
 
 export default function HomeScreen() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
@@ -94,15 +99,12 @@ export default function HomeScreen() {
       locations={[0.1, 0.2, 0.9]}
       style={styles.mainContainer}
     >
-      {/* App Name/Logo */}
       <View style={styles.appName}>
         <Text style={[styles.logoText, { color: accentColor }]}>L</Text>
       </View>
 
-      {/* Header */}
       <View style={styles.header}>
         <View style={styles.overView}>
-          {/* Date Selector */}
           <View style={styles.dataSelector}>
             <Text style={[styles.selectedYear, { color: textColor }]}>{selectedYear}</Text>
 
@@ -116,43 +118,40 @@ export default function HomeScreen() {
             </Pressable>
           </View>
 
-          {/* Info Cards */}
           <View style={styles.info}>
-            {/* In Card */}
             <UnifiedCard style={styles.infoCard} padding="sm">
               <Text style={styles.infoLabel}>In</Text>
               <View style={styles.amountRow}>
-                <Text style={[styles.amountInteger, { color: '#4caf50' }]}>
+                <Text style={[styles.amountInteger, { color: INCOME_COLOR }]}>
                   {formatNumber(totalIn)}
                 </Text>
-                <Text style={[styles.amountDecimal, { color: '#4caf50' }]}>
+                <Text style={[styles.amountDecimal, { color: INCOME_COLOR }]}>
                   .{formatNumber(totalIn, 'float')}
                 </Text>
               </View>
             </UnifiedCard>
 
-            {/* Out Card */}
             <UnifiedCard style={styles.infoCard} padding="sm">
               <Text style={styles.infoLabel}>Out</Text>
               <View style={styles.amountRow}>
-                <Text style={[styles.amountInteger, { color: '#f44336' }]}>
+                <Text style={[styles.amountInteger, { color: EXPENSE_COLOR }]}>
                   {formatNumber(totalOut)}
                 </Text>
-                <Text style={[styles.amountDecimal, { color: '#f44336' }]}>
+                <Text style={[styles.amountDecimal, { color: EXPENSE_COLOR }]}>
                   .{formatNumber(totalOut, 'float')}
                 </Text>
+                
               </View>
             </UnifiedCard>
           </View>
         </View>
 
-        {/* Navbar */}
         <UnifiedCard style={styles.navbar} elevation="lg">
           <Navbar />
+  
         </UnifiedCard>
       </View>
 
-      {/* Transactions List */}
       <UnifiedCard style={styles.body} elevation="lg" padding="none">
         <TransactionsList
           selectedMonth={selectedMonth}
@@ -161,10 +160,9 @@ export default function HomeScreen() {
         />
       </UnifiedCard>
 
-      {/* Voice Input Button */}
+      <AddButton />
       <VoiceInputButton />
 
-      {/* Date Picker Modal */}
       <DatePickerModal
         visible={showPicker}
         selectedMonth={selectedMonth}
@@ -180,11 +178,9 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  
   mainContainer: {
     flex: 1,
     position: 'relative',
-
   },
   appName: {
     width: responsive(200),
@@ -242,7 +238,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'flex-start',
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
-
   },
   infoLabel: {
     ...typography.body,

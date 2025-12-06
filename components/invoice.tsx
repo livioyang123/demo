@@ -1,8 +1,12 @@
-// components/Invoice.tsx
+// components/invoice.tsx
+import { feedback } from '@/app/utils/feedback';
 import { calculateTotalForInMonth_in, calculateTotalForInMonth_out } from '@/app/utils/registry';
-import AntDesign from '@expo/vector-icons/AntDesign';
+import { EXPENSE_COLOR, INCOME_COLOR } from '@/constants/colors';
+import { borderRadius, responsive, spacing, typography } from '@/constants/design-system';
+import { useGradient } from '@/hooks/useGradient';
+import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, Vibration, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 interface InvoiceProps {
   visible: boolean;
@@ -26,6 +30,8 @@ export default function Invoice({ visible, onClose, initialYear = new Date().get
   const [monthsData, setMonthsData] = useState<MonthData[]>([]);
   const [totalIncome, setTotalIncome] = useState(0);
   const [totalOutcome, setTotalOutcome] = useState(0);
+
+  const { accentColor, textColor } = useGradient();
 
   const years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i);
 
@@ -62,31 +68,25 @@ export default function Invoice({ visible, onClose, initialYear = new Date().get
     setTotalOutcome(yearOutcome);
   };
 
-  const handlePress = () => {
-    Vibration.vibrate(10);
-  };
-
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.overlay}>
         <View style={styles.container}>
-          {/* Header */}
           <View style={styles.header}>
-            <Pressable onPress={() => { handlePress(); onClose(); }} style={styles.closeButton}>
-              <AntDesign name="close" size={24} color="#007aff" />
+            <Pressable onPress={() => { feedback.triggerFeedback('light'); onClose(); }} style={styles.closeButton}>
+              <Ionicons name="close" size={24} color={accentColor} />
             </Pressable>
-            <Text style={styles.title}>Resoconto Annuale</Text>
+            <Text style={[styles.title, { color: textColor }]}>Resoconto Annuale</Text>
             <View style={{ width: 24 }} />
           </View>
 
-          {/* Year Selector */}
           <View style={styles.yearSelector}>
             <Pressable 
-              onPress={() => { handlePress(); setShowYearPicker(!showYearPicker); }}
-              style={styles.yearButton}
+              onPress={() => { feedback.triggerFeedback('light'); setShowYearPicker(!showYearPicker); }}
+              style={[styles.yearButton, { backgroundColor: accentColor + '15' }]}
             >
-              <Text style={styles.yearText}>{selectedYear}</Text>
-              <AntDesign name={showYearPicker ? "caret-up" : "caret-down"} size={16} color="#007aff" />
+              <Text style={[styles.yearText, { color: accentColor }]}>{selectedYear}</Text>
+              <Ionicons name={showYearPicker ? "chevron-up" : "chevron-down"} size={16} color={accentColor} />
             </Pressable>
           </View>
 
@@ -97,13 +97,19 @@ export default function Invoice({ visible, onClose, initialYear = new Date().get
                   <Pressable
                     key={year}
                     onPress={() => {
-                      handlePress();
+                      feedback.triggerFeedback('light');
                       setSelectedYear(year);
                       setShowYearPicker(false);
                     }}
-                    style={[styles.yearItem, year === selectedYear && styles.selectedYearItem]}
+                    style={[
+                      styles.yearItem, 
+                      year === selectedYear && { backgroundColor: accentColor }
+                    ]}
                   >
-                    <Text style={[styles.yearItemText, year === selectedYear && styles.selectedYearText]}>
+                    <Text style={[
+                      styles.yearItemText, 
+                      year === selectedYear && styles.selectedYearText
+                    ]}>
                       {year}
                     </Text>
                   </Pressable>
@@ -112,47 +118,45 @@ export default function Invoice({ visible, onClose, initialYear = new Date().get
             </View>
           )}
 
-          {/* Total Summary */}
-          <View style={styles.summary}>
+          <View style={[styles.summary, { backgroundColor: accentColor + '10' }]}>
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Totale In</Text>
-              <Text style={[styles.summaryValue, { color: '#4caf50' }]}>
+              <Text style={[styles.summaryValue, { color: INCOME_COLOR }]}>
                 €{totalIncome.toFixed(2)}
               </Text>
             </View>
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Totale Out</Text>
-              <Text style={[styles.summaryValue, { color: '#f44336' }]}>
+              <Text style={[styles.summaryValue, { color: EXPENSE_COLOR }]}>
                 €{totalOutcome.toFixed(2)}
               </Text>
             </View>
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Bilancio</Text>
-              <Text style={[styles.summaryValue, { color: totalIncome - totalOutcome >= 0 ? '#4caf50' : '#f44336' }]}>
+              <Text style={[styles.summaryValue, { color: totalIncome - totalOutcome >= 0 ? INCOME_COLOR : EXPENSE_COLOR }]}>
                 €{(totalIncome - totalOutcome).toFixed(2)}
               </Text>
             </View>
           </View>
 
-          {/* Table */}
           <ScrollView style={styles.tableContainer}>
-            <View style={styles.tableHeader}>
-              <Text style={[styles.tableHeaderText, { flex: 1 }]}>Mese</Text>
-              <Text style={[styles.tableHeaderText, { flex: 1, textAlign: 'right' }]}>In</Text>
-              <Text style={[styles.tableHeaderText, { flex: 1, textAlign: 'right' }]}>Out</Text>
-              <Text style={[styles.tableHeaderText, { flex: 1, textAlign: 'right' }]}>Totale</Text>
+            <View style={[styles.tableHeader, { backgroundColor: accentColor + '15' }]}>
+              <Text style={[styles.tableHeaderText, { flex: 1, color: textColor }]}>Mese</Text>
+              <Text style={[styles.tableHeaderText, { flex: 1, textAlign: 'right', color: textColor }]}>In</Text>
+              <Text style={[styles.tableHeaderText, { flex: 1, textAlign: 'right', color: textColor }]}>Out</Text>
+              <Text style={[styles.tableHeaderText, { flex: 1, textAlign: 'right', color: textColor }]}>Totale</Text>
             </View>
 
             {monthsData.map((data, index) => (
               <View key={index} style={[styles.tableRow, index % 2 === 0 && styles.tableRowEven]}>
                 <Text style={[styles.tableCell, { flex: 1 }]}>{data.month}</Text>
-                <Text style={[styles.tableCell, { flex: 1, textAlign: 'right', color: '#4caf50' }]}>
+                <Text style={[styles.tableCell, { flex: 1, textAlign: 'right', color: INCOME_COLOR }]}>
                   €{data.income.toFixed(2)}
                 </Text>
-                <Text style={[styles.tableCell, { flex: 1, textAlign: 'right', color: '#f44336' }]}>
+                <Text style={[styles.tableCell, { flex: 1, textAlign: 'right', color: EXPENSE_COLOR }]}>
                   €{data.outcome.toFixed(2)}
                 </Text>
-                <Text style={[styles.tableCell, { flex: 1, textAlign: 'right', fontWeight: '600', color: data.total >= 0 ? '#4caf50' : '#f44336' }]}>
+                <Text style={[styles.tableCell, { flex: 1, textAlign: 'right', fontWeight: '600', color: data.total >= 0 ? INCOME_COLOR : EXPENSE_COLOR }]}>
                   €{data.total.toFixed(2)}
                 </Text>
               </View>
@@ -172,65 +176,59 @@ const styles = StyleSheet.create({
   },
   container: {
     backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
     height: '85%',
-    paddingTop: 20,
+    paddingTop: spacing.lg,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 15,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
   closeButton: {
-    padding: 5,
+    padding: spacing.xs,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...typography.h4,
   },
   yearSelector: {
     alignItems: 'center',
-    paddingVertical: 15,
+    paddingVertical: spacing.md,
   },
   yearButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: '#f5f5f5',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.sm,
   },
   yearText: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#007aff',
+    ...typography.h4,
   },
   yearPicker: {
     backgroundColor: '#f9f9f9',
-    maxHeight: 150,
-    marginHorizontal: 20,
-    borderRadius: 10,
-    marginBottom: 10,
+    maxHeight: responsive(150),
+    marginHorizontal: spacing.lg,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing.sm,
   },
   yearList: {
-    padding: 5,
+    padding: spacing.xs,
   },
   yearItem: {
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    borderRadius: 8,
-  },
-  selectedYearItem: {
-    backgroundColor: '#007aff',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.sm,
+    marginVertical: spacing.xs / 2,
   },
   yearItemText: {
-    fontSize: 16,
+    ...typography.body,
     textAlign: 'center',
   },
   selectedYearText: {
@@ -240,53 +238,48 @@ const styles = StyleSheet.create({
   summary: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingVertical: 20,
-    paddingHorizontal: 10,
-    backgroundColor: '#f9f9f9',
-    marginHorizontal: 15,
-    marginVertical: 15,
-    borderRadius: 10,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.sm,
+    marginHorizontal: spacing.md,
+    marginVertical: spacing.md,
+    borderRadius: borderRadius.md,
   },
   summaryItem: {
     alignItems: 'center',
   },
   summaryLabel: {
-    fontSize: 12,
+    ...typography.small,
     color: '#666',
-    marginBottom: 5,
+    marginBottom: spacing.xs,
   },
   summaryValue: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...typography.h4,
   },
   tableContainer: {
     flex: 1,
-    paddingHorizontal: 15,
+    paddingHorizontal: spacing.md,
   },
   tableHeader: {
     flexDirection: 'row',
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    marginBottom: 5,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    borderRadius: borderRadius.sm,
+    marginBottom: spacing.xs,
   },
   tableHeaderText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
+    ...typography.bodyBold,
   },
   tableRow: {
     flexDirection: 'row',
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    borderRadius: 6,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    borderRadius: borderRadius.sm,
   },
   tableRowEven: {
     backgroundColor: '#fafafa',
   },
   tableCell: {
-    fontSize: 14,
+    ...typography.caption,
     color: '#444',
   },
 });

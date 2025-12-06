@@ -1,9 +1,10 @@
-// app/(tabs)/discover-refactored.tsx
+// app/(tabs)/discover.tsx
 import { calculateTotalForInMonth_in, calculateTotalForInMonth_out } from '@/app/utils/registry';
 import Budget from '@/components/budget';
 import CurrencyConverter from '@/components/CurrencyConverter';
 import Invoice from '@/components/invoice';
 import UnifiedCard from '@/components/ui/UnifiedCard';
+import { EXPENSE_COLOR, INCOME_COLOR } from '@/constants/colors';
 import { iconSizes, responsive, spacing, typography } from '@/constants/design-system';
 import { useGradient } from '@/hooks/useGradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -33,7 +34,6 @@ export default function DiscoverScreen() {
 
   useEffect(() => {
     loadData();
-    
   }, []);
 
   const loadData = async () => {
@@ -59,7 +59,7 @@ export default function DiscoverScreen() {
       title: 'Entrate Mese',
       value: `€${monthIn.toFixed(2)}`,
       subtitle: 'Totale entrate mensili',
-      color: '#4caf50',
+      color: INCOME_COLOR,
     },
     {
       icon: 'trending-down',
@@ -67,7 +67,7 @@ export default function DiscoverScreen() {
       title: 'Uscite Mese',
       value: `€${monthOut.toFixed(2)}`,
       subtitle: 'Totale uscite mensili',
-      color: '#f44336',
+      color: EXPENSE_COLOR,
     },
     {
       icon: 'stats-chart',
@@ -75,7 +75,7 @@ export default function DiscoverScreen() {
       title: 'Bilancio Mensile',
       value: `€${(monthIn - monthOut).toFixed(2)}`,
       subtitle: 'Differenza entrate/uscite',
-      color: monthIn - monthOut >= 0 ? '#4caf50' : '#f44336',
+      color: monthIn - monthOut >= 0 ? INCOME_COLOR : EXPENSE_COLOR,
       action: () => setActiveModal('invoice'),
     },
     {
@@ -125,7 +125,6 @@ export default function DiscoverScreen() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Main Cards Grid */}
         <View style={styles.cardsGrid}>
           {cards.map((card, index) => (
             <UnifiedCard
@@ -147,7 +146,6 @@ export default function DiscoverScreen() {
           ))}
         </View>
 
-        {/* Tools Section */}
         <View style={styles.toolsSection}>
           <Text style={styles.sectionTitle}>Strumenti</Text>
           {tools.map((tool, index) => (
@@ -172,7 +170,6 @@ export default function DiscoverScreen() {
           ))}
         </View>
 
-        {/* Quick Stats */}
         <View style={styles.statsSection}>
           <Text style={styles.sectionTitle}>Statistiche Rapide</Text>
           <View style={styles.statsGrid}>
@@ -198,7 +195,6 @@ export default function DiscoverScreen() {
         </View>
       </ScrollView>
 
-      {/* Modals */}
       <Invoice 
         visible={activeModal === 'invoice'} 
         onClose={() => setActiveModal(null)} 

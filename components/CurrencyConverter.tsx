@@ -3,15 +3,7 @@ import { borderRadius, iconSizes, responsive, shadows, spacing, typography } fro
 import { useGradient } from '@/hooks/useGradient';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import {
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View
-} from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 interface CurrencyConverterProps {
   visible: boolean;
@@ -73,33 +65,22 @@ export default function CurrencyConverter({ visible, onClose }: CurrencyConverte
     onCurrencyPress: () => void;
     editable?: boolean;
   }) => (
-    <View style={styles.inputContainer}>
-      <Pressable
-        onPress={onCurrencyPress}
-        style={[styles.currencySelector, { borderColor: accentColor }]}
-      >
-        <Text style={styles.currencySymbol}>{currency.symbol}</Text>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.currencyCode, { color: textColor }]}>
-            {currency.code}
-          </Text>
-          <Text style={styles.currencyName}>{currency.name}</Text>
-        </View>
-        <Ionicons name="chevron-down" size={iconSizes.md} color={accentColor} />
+    <View style={[styles.inputContainer, { borderColor: accentColor }]}>
+      <Pressable onPress={onCurrencyPress} style={styles.currencyButton}>
+        <Text style={[styles.currencySymbol, { color: accentColor }]}>{currency.symbol}</Text>
+        <Ionicons name="chevron-down" size={iconSizes.sm} color={accentColor} />
       </Pressable>
-
+      
       <TextInput
-        style={[
-          styles.amountInput,
-          { borderColor: accentColor, color: textColor },
-          !editable && styles.amountInputDisabled,
-        ]}
+        style={[styles.amountInput, { color: textColor }]}
         value={amount}
         onChangeText={onAmountChange}
         keyboardType="numeric"
         placeholder="0.00"
         editable={editable}
       />
+      
+      <Text style={styles.currencyCode}>{currency.code}</Text>
     </View>
   );
 
@@ -118,11 +99,10 @@ export default function CurrencyConverter({ visible, onClose }: CurrencyConverte
 
     return (
       <View style={styles.pickerOverlay}>
+        <Pressable style={styles.pickerBackground} onPress={onClose} />
         <View style={[styles.pickerContainer, { backgroundColor: 'white' }]}>
           <View style={styles.pickerHeader}>
-            <Text style={[styles.pickerTitle, { color: textColor }]}>
-              Seleziona Valuta
-            </Text>
+            <Text style={[styles.pickerTitle, { color: textColor }]}>Seleziona Valuta</Text>
             <Pressable onPress={onClose}>
               <Ionicons name="close" size={iconSizes.lg} color={textColor} />
             </Pressable>
@@ -143,7 +123,9 @@ export default function CurrencyConverter({ visible, onClose }: CurrencyConverte
                 ]}
               >
                 <View style={styles.currencyItemLeft}>
-                  <Text style={styles.currencyItemSymbol}>{currency.symbol}</Text>
+                  <Text style={[styles.currencyItemSymbol, { color: accentColor }]}>
+                    {currency.symbol}
+                  </Text>
                   <View>
                     <Text style={[styles.currencyItemCode, { color: textColor }]}>
                       {currency.code}
@@ -152,7 +134,7 @@ export default function CurrencyConverter({ visible, onClose }: CurrencyConverte
                   </View>
                 </View>
                 {currency.code === selected.code && (
-                  <Ionicons name="checkmark" size={iconSizes.lg} color={accentColor} />
+                  <Ionicons name="checkmark-circle" size={iconSizes.lg} color={accentColor} />
                 )}
               </Pressable>
             ))}
@@ -166,18 +148,14 @@ export default function CurrencyConverter({ visible, onClose }: CurrencyConverte
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.overlay}>
         <View style={[styles.container, { backgroundColor: 'white' }]}>
-          {/* Header */}
           <View style={styles.header}>
             <Pressable onPress={onClose}>
               <Ionicons name="close" size={iconSizes.lg} color={accentColor} />
             </Pressable>
-            <Text style={[styles.title, { color: textColor }]}>
-              Convertitore Valute
-            </Text>
+            <Text style={[styles.title, { color: textColor }]}>Convertitore Valute</Text>
             <View style={{ width: iconSizes.lg }} />
           </View>
 
-          {/* From Currency */}
           <View style={styles.section}>
             <Text style={styles.label}>Da</Text>
             <CurrencyInput
@@ -188,7 +166,6 @@ export default function CurrencyConverter({ visible, onClose }: CurrencyConverte
             />
           </View>
 
-          {/* Swap Button */}
           <View style={styles.swapContainer}>
             <Pressable
               onPress={handleSwap}
@@ -198,7 +175,6 @@ export default function CurrencyConverter({ visible, onClose }: CurrencyConverte
             </Pressable>
           </View>
 
-          {/* To Currency */}
           <View style={styles.section}>
             <Text style={styles.label}>A</Text>
             <CurrencyInput
@@ -209,15 +185,12 @@ export default function CurrencyConverter({ visible, onClose }: CurrencyConverte
             />
           </View>
 
-          {/* Exchange Rate Info */}
           <View style={[styles.rateInfo, { backgroundColor: accentColor + '15' }]}>
             <Text style={styles.rateText}>
-              1 {fromCurrency.code} = {(toCurrency.rate / fromCurrency.rate).toFixed(4)}{' '}
-              {toCurrency.code}
+              1 {fromCurrency.code} = {(toCurrency.rate / fromCurrency.rate).toFixed(4)} {toCurrency.code}
             </Text>
           </View>
 
-          {/* Currency Pickers */}
           <CurrencyPicker
             visible={showFromPicker}
             onSelect={setFromCurrency}
@@ -270,38 +243,35 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   inputContainer: {
-    gap: spacing.sm,
-  },
-  currencySelector: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1.5,
     borderRadius: borderRadius.md,
-    padding: spacing.md,
+    padding: spacing.sm,
     backgroundColor: '#f9f9f9',
-    gap: spacing.md,
+    gap: spacing.xs,
+  },
+  currencyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs / 2,
+    paddingHorizontal: spacing.xs,
   },
   currencySymbol: {
-    fontSize: responsive(28),
+    fontSize: responsive(24),
     fontWeight: '600',
   },
-  currencyCode: {
-    ...typography.bodyBold,
-  },
-  currencyName: {
-    ...typography.small,
-    color: '#666',
-  },
   amountInput: {
-    borderWidth: 1.5,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
+    flex: 1,
     ...typography.h3,
     textAlign: 'center',
-    backgroundColor: '#f9f9f9',
+    paddingVertical: spacing.xs,
   },
-  amountInputDisabled: {
-    backgroundColor: '#f5f5f5',
+  currencyCode: {
+    ...typography.caption,
+    color: '#666',
+    fontWeight: '600',
+    paddingHorizontal: spacing.sm,
   },
   swapContainer: {
     alignItems: 'center',
@@ -332,10 +302,16 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+  },
+  pickerBackground: {
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
   },
   pickerContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     borderTopLeftRadius: borderRadius.xl,
     borderTopRightRadius: borderRadius.xl,
     maxHeight: '50%',

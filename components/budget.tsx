@@ -1,9 +1,13 @@
-// components/Budget.tsx
+// components/budget.tsx
+import { feedback } from '@/app/utils/feedback';
 import { calculateTotalForInMonth_out } from '@/app/utils/registry';
-import AntDesign from '@expo/vector-icons/AntDesign';
+import { EXPENSE_COLOR } from '@/constants/colors';
+import { borderRadius, responsive, spacing, typography } from '@/constants/design-system';
+import { useGradient } from '@/hooks/useGradient';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useState } from 'react';
-import { Alert, Modal, Pressable, StyleSheet, Text, TextInput, Vibration, View } from 'react-native';
+import { Alert, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 interface BudgetProps {
   visible: boolean;
@@ -18,6 +22,8 @@ export default function Budget({ visible, onClose }: BudgetProps) {
   const [yearlyBudget, setYearlyBudget] = useState('0');
   const [currentSpent, setCurrentSpent] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
+
+  const { accentColor, textColor } = useGradient();
 
   useEffect(() => {
     if (visible) {
@@ -58,7 +64,7 @@ export default function Budget({ visible, onClose }: BudgetProps) {
 
   const saveBudget = async () => {
     try {
-      Vibration.vibrate(10);
+      feedback.triggerFeedback('success');
       const key = budgetType === 'monthly' ? 'budget_monthly' : 'budget_yearly';
       const value = budgetType === 'monthly' ? monthlyBudget : yearlyBudget;
       await AsyncStorage.setItem(key, value);
@@ -69,7 +75,7 @@ export default function Budget({ visible, onClose }: BudgetProps) {
   };
 
   const resetBudget = () => {
-    Vibration.vibrate(10);
+    feedback.triggerFeedback('warning');
     Alert.alert(
       'Conferma',
       'Vuoi azzerare il budget?',
@@ -97,36 +103,36 @@ export default function Budget({ visible, onClose }: BudgetProps) {
   const percentage = currentBudget > 0 ? (remaining / currentBudget) * 100 : 0;
   const progressWidth = Math.max(0, Math.min(100, percentage));
 
-  const handlePress = () => {
-    Vibration.vibrate(10);
+  const getProgressColor = () => {
+    if (percentage > 30) return accentColor;
+    if (percentage > 10) return '#FF9800';
+    return EXPENSE_COLOR;
   };
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.overlay}>
         <View style={styles.container}>
-          {/* Header */}
           <View style={styles.header}>
-            <Pressable onPress={() => { handlePress(); onClose(); }} style={styles.closeButton}>
-              <AntDesign name="close" size={24} color="#007aff" />
+            <Pressable onPress={() => { feedback.triggerFeedback('light'); onClose(); }} style={styles.closeButton}>
+              <Ionicons name="close" size={24} color={accentColor} />
             </Pressable>
-            <Text style={styles.title}>Budget</Text>
+            <Text style={[styles.title, { color: textColor }]}>Budget</Text>
             <View style={{ width: 24 }} />
           </View>
 
-          {/* Type Selector */}
           <View style={styles.typeSelector}>
             <Pressable
-              onPress={() => { handlePress(); setBudgetType('monthly'); }}
-              style={[styles.typeButton, budgetType === 'monthly' && styles.activeTypeButton]}
+              onPress={() => { feedback.triggerFeedback('light'); setBudgetType('monthly'); }}
+              style={[styles.typeButton, budgetType === 'monthly' && { backgroundColor: accentColor }]}
             >
               <Text style={[styles.typeButtonText, budgetType === 'monthly' && styles.activeTypeText]}>
                 Mensile
               </Text>
             </Pressable>
             <Pressable
-              onPress={() => { handlePress(); setBudgetType('yearly'); }}
-              style={[styles.typeButton, budgetType === 'yearly' && styles.activeTypeButton]}
+              onPress={() => { feedback.triggerFeedback('light'); setBudgetType('yearly'); }}
+              style={[styles.typeButton, budgetType === 'yearly' && { backgroundColor: accentColor }]}
             >
               <Text style={[styles.typeButtonText, budgetType === 'yearly' && styles.activeTypeText]}>
                 Annuale
@@ -134,40 +140,38 @@ export default function Budget({ visible, onClose }: BudgetProps) {
             </Pressable>
           </View>
 
-          {/* Budget Display/Edit */}
           <View style={styles.budgetSection}>
             <Text style={styles.label}>Budget {budgetType === 'monthly' ? 'Mensile' : 'Annuale'}</Text>
             {isEditing ? (
               <View style={styles.editContainer}>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { borderColor: accentColor }]}
                   value={budgetType === 'monthly' ? monthlyBudget : yearlyBudget}
                   onChangeText={budgetType === 'monthly' ? setMonthlyBudget : setYearlyBudget}
                   keyboardType="numeric"
                   placeholder="0.00"
                 />
-                <Pressable onPress={saveBudget} style={styles.saveButton}>
+                <Pressable onPress={saveBudget} style={[styles.saveButton, { backgroundColor: accentColor }]}>
                   <Text style={styles.saveButtonText}>Salva</Text>
                 </Pressable>
               </View>
             ) : (
-              <Pressable onPress={() => { handlePress(); setIsEditing(true); }} style={styles.budgetDisplay}>
-                <Text style={styles.budgetValue}>€{currentBudget.toFixed(2)}</Text>
-                <AntDesign name="edit" size={20} color="#007aff" />
+              <Pressable onPress={() => { feedback.triggerFeedback('light'); setIsEditing(true); }} style={styles.budgetDisplay}>
+                <Text style={[styles.budgetValue, { color: accentColor }]}>€{currentBudget.toFixed(2)}</Text>
+                <Ionicons name="create-outline" size={20} color={accentColor} />
               </Pressable>
             )}
           </View>
 
-          {/* Progress */}
           <View style={styles.progressSection}>
             <View style={styles.progressInfo}>
               <View>
                 <Text style={styles.progressLabel}>Speso</Text>
-                <Text style={styles.spentValue}>€{currentSpent.toFixed(2)}</Text>
+                <Text style={[styles.spentValue, { color: EXPENSE_COLOR }]}>€{currentSpent.toFixed(2)}</Text>
               </View>
               <View style={{ alignItems: 'flex-end' }}>
                 <Text style={styles.progressLabel}>Rimanente</Text>
-                <Text style={[styles.remainingValue, { color: remaining >= 0 ? '#4caf50' : '#f44336' }]}>
+                <Text style={[styles.remainingValue, { color: remaining >= 0 ? accentColor : EXPENSE_COLOR }]}>
                   €{remaining.toFixed(2)}
                 </Text>
               </View>
@@ -179,7 +183,7 @@ export default function Budget({ visible, onClose }: BudgetProps) {
                   styles.progressBar, 
                   { 
                     width: `${progressWidth}%`,
-                    backgroundColor: percentage > 30 ? '#4caf50' : percentage > 10 ? '#ff9800' : '#f44336'
+                    backgroundColor: getProgressColor()
                   }
                 ]} 
               />
@@ -187,11 +191,10 @@ export default function Budget({ visible, onClose }: BudgetProps) {
             <Text style={styles.percentageText}>{percentage.toFixed(1)}% disponibile</Text>
           </View>
 
-          {/* Summary Cards */}
           <View style={styles.summaryContainer}>
-            <View style={[styles.summaryCard, { backgroundColor: '#e3f2fd' }]}>
+            <View style={[styles.summaryCard, { backgroundColor: accentColor + '15' }]}>
               <Text style={styles.summaryLabel}>Media giornaliera disponibile</Text>
-              <Text style={styles.summaryValue}>
+              <Text style={[styles.summaryValue, { color: accentColor }]}>
                 €{budgetType === 'monthly' 
                   ? (remaining / new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()).toFixed(2)
                   : (remaining / 365).toFixed(2)
@@ -199,19 +202,18 @@ export default function Budget({ visible, onClose }: BudgetProps) {
               </Text>
             </View>
 
-            <View style={[styles.summaryCard, { backgroundColor: '#fff3e0' }]}>
+            <View style={[styles.summaryCard, { backgroundColor: accentColor + '10' }]}>
               <Text style={styles.summaryLabel}>% Budget utilizzato</Text>
-              <Text style={styles.summaryValue}>
+              <Text style={[styles.summaryValue, { color: textColor }]}>
                 {currentBudget > 0 ? ((currentSpent / currentBudget) * 100).toFixed(1) : 0}%
               </Text>
             </View>
           </View>
 
-          {/* Actions */}
           <View style={styles.actions}>
             <Pressable onPress={resetBudget} style={styles.resetButton}>
-              <AntDesign name="delete" size={20} color="#f44336" />
-              <Text style={styles.resetButtonText}>Azzera Budget</Text>
+              <Ionicons name="trash-outline" size={20} color={EXPENSE_COLOR} />
+              <Text style={[styles.resetButtonText, { color: EXPENSE_COLOR }]}>Azzera Budget</Text>
             </Pressable>
           </View>
         </View>
@@ -228,173 +230,158 @@ const styles = StyleSheet.create({
   },
   container: {
     backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
     height: '75%',
-    paddingTop: 20,
+    paddingTop: spacing.lg,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 15,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
   closeButton: {
-    padding: 5,
+    padding: spacing.xs,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...typography.h4,
   },
   typeSelector: {
     flexDirection: 'row',
-    marginHorizontal: 20,
-    marginVertical: 20,
+    marginHorizontal: spacing.lg,
+    marginVertical: spacing.lg,
     backgroundColor: '#f5f5f5',
-    borderRadius: 10,
-    padding: 4,
+    borderRadius: borderRadius.md,
+    padding: spacing.xs,
   },
   typeButton: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: spacing.sm,
     alignItems: 'center',
-    borderRadius: 8,
-  },
-  activeTypeButton: {
-    backgroundColor: '#007aff',
+    borderRadius: borderRadius.sm,
   },
   typeButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...typography.bodyBold,
     color: '#666',
   },
   activeTypeText: {
     color: 'white',
   },
   budgetSection: {
-    paddingHorizontal: 20,
-    marginBottom: 25,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
   },
   label: {
-    fontSize: 14,
+    ...typography.caption,
     color: '#666',
-    marginBottom: 10,
+    marginBottom: spacing.sm,
   },
   editContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: spacing.sm,
   },
   input: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    fontSize: 18,
+    borderWidth: 1.5,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    ...typography.body,
   },
   saveButton: {
-    backgroundColor: '#007aff',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.sm,
   },
   saveButtonText: {
     color: 'white',
-    fontWeight: '600',
+    ...typography.bodyBold,
   },
   budgetDisplay: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#f9f9f9',
-    padding: 15,
-    borderRadius: 8,
+    padding: spacing.md,
+    borderRadius: borderRadius.sm,
   },
   budgetValue: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#007aff',
+    ...typography.h3,
   },
   progressSection: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
   },
   progressInfo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: spacing.sm,
   },
   progressLabel: {
-    fontSize: 12,
+    ...typography.small,
     color: '#666',
-    marginBottom: 4,
+    marginBottom: spacing.xs / 2,
   },
   spentValue: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#f44336',
+    ...typography.h4,
   },
   remainingValue: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...typography.h4,
   },
   progressBarContainer: {
-    height: 12,
+    height: responsive(12),
     backgroundColor: '#e0e0e0',
-    borderRadius: 6,
+    borderRadius: borderRadius.sm,
     overflow: 'hidden',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   progressBar: {
     height: '100%',
-    borderRadius: 6,
+    borderRadius: borderRadius.sm,
   },
   percentageText: {
-    fontSize: 12,
+    ...typography.small,
     color: '#666',
     textAlign: 'center',
   },
   summaryContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    gap: 10,
-    marginBottom: 20,
+    paddingHorizontal: spacing.lg,
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
   },
   summaryCard: {
     flex: 1,
-    padding: 15,
-    borderRadius: 10,
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
   },
   summaryLabel: {
-    fontSize: 12,
+    ...typography.small,
     color: '#666',
-    marginBottom: 8,
+    marginBottom: spacing.xs,
   },
   summaryValue: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
+    ...typography.h4,
   },
   actions: {
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.lg,
   },
   resetButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: '#f44336',
-    borderRadius: 8,
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+    borderWidth: 1.5,
+    borderColor: '#EF476F',
+    borderRadius: borderRadius.sm,
   },
   resetButtonText: {
-    color: '#f44336',
-    fontWeight: '600',
+    ...typography.bodyBold,
   },
 });

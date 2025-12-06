@@ -1,7 +1,8 @@
-// app/(tabs)/graph-refactored.tsx
+// app/(tabs)/graph.tsx
 import { loadArray } from '@/app/utils/storage';
 import UnifiedCard from '@/components/ui/UnifiedCard';
 import UnifiedSelector from '@/components/ui/UnifiedSelector';
+import { EXPENSE_COLOR, INCOME_COLOR } from '@/constants/colors';
 import { borderRadius, iconSizes, responsive, spacing, typography } from '@/constants/design-system';
 import { useGradient } from '@/hooks/useGradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,7 +10,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
 import { Dimensions, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Line, Path, Text as SvgText } from 'react-native-svg';
-
 
 type Period = 'week' | 'month' | 'year';
 type DataType = 'in' | 'out';
@@ -31,7 +31,6 @@ export default function GraphScreen() {
 
   useEffect(() => {
     loadData();
-    
   }, [period, dataType]);
 
   const loadData = async () => {
@@ -52,15 +51,12 @@ export default function GraphScreen() {
       }
     });
 
-
     const groupedData = groupDataByPeriod(filteredData, period);
     setChartData(groupedData);
-
 
     const total = filteredData.reduce((sum, item) => sum + item.amount, 0);
     const avg = groupedData.length > 0 ? total / groupedData.length : 0;
     setAverage(avg);
-
 
     const typeGroups: { [key: string]: number } = {};
     filteredData.forEach(item => {
@@ -143,8 +139,8 @@ export default function GraphScreen() {
       `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`
     ).join(' ');
 
-    const lineColor = dataType === 'in' ? '#4caf50' : '#f44336';
-    const fillColor = dataType === 'in' ? 'rgba(76, 175, 80, 0.1)' : 'rgba(244, 67, 54, 0.1)';
+    const lineColor = dataType === 'in' ? INCOME_COLOR : EXPENSE_COLOR;
+    const fillColor = dataType === 'in' ? INCOME_COLOR + '20' : EXPENSE_COLOR + '20';
  
     const areaPath = `${pathData} L ${points[points.length - 1].x} ${chartHeight - padding} L ${padding} ${chartHeight - padding} Z`;
 
@@ -152,7 +148,6 @@ export default function GraphScreen() {
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View style={styles.chartWrapper}>
           <Svg width={Math.max(chartWidth, points.length * 60)} height={chartHeight}>
- 
             {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => {
               const y = chartHeight - padding - ratio * (chartHeight - padding * 2);
               const value = minValue + ratio * (maxValue - minValue);
@@ -190,7 +185,6 @@ export default function GraphScreen() {
               strokeLinejoin="round"
             />
 
-
             {points.map((point, index) => (
               <React.Fragment key={index}>
                 <Circle
@@ -209,7 +203,6 @@ export default function GraphScreen() {
                   textAnchor="middle"
                 >
                   {point.label}
- 
                 </SvgText>
               </React.Fragment>
             ))}
@@ -230,7 +223,6 @@ export default function GraphScreen() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Period Selector */}
         <UnifiedSelector
           options={periodOptions}
           selected={period}
@@ -239,7 +231,6 @@ export default function GraphScreen() {
           style={{ marginBottom: spacing.md }}
         />
 
-        {/* Data Type Selector */}
         <UnifiedSelector
           options={dataTypeOptions}
           selected={dataType}
@@ -248,7 +239,6 @@ export default function GraphScreen() {
           style={{ marginBottom: spacing.md }}
         />
 
-        {/* Average Card */}
         <UnifiedCard style={{ marginBottom: spacing.md }}>
           <View style={styles.averageContent}>
             <Ionicons name="stats-chart" size={iconSizes.lg} color={accentColor} />
@@ -263,13 +253,11 @@ export default function GraphScreen() {
           </View>
         </UnifiedCard>
 
-        {/* Line Chart */}
         <UnifiedCard style={{ marginBottom: spacing.md }}>
           <Text style={styles.sectionTitle}>Andamento</Text>
           <LineChart />
         </UnifiedCard>
 
-        {/* Top 5 */}
         <UnifiedCard>
           <Text style={styles.sectionTitle}>Top 5 Categorie</Text>
           {topTypes.length === 0 ? (
@@ -288,7 +276,7 @@ export default function GraphScreen() {
                         styles.progressBarFill, 
                         { 
                           width: `${item.percentage}%`,
-                          backgroundColor: dataType === 'in' ? '#4caf50' : '#f44336'
+                          backgroundColor: dataType === 'in' ? INCOME_COLOR : EXPENSE_COLOR
                         }
                       ]} 
                     />
